@@ -1,6 +1,6 @@
 {
   "name": "dsh-fish-ui",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "description": "Deep Fish UI — a dot-matrix theme for DeepSeek Harness: fish hero artwork, whale-blue accents, reading layout, Maple Mono NF CN type, composer glow and fish-finish toggles.",
   "license": "MIT",
@@ -25,7 +25,6 @@
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
-    "assets",
     "README.md",
     "LICENSE"
   ],
