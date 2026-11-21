@@ -1,6 +1,6 @@
 {
   "name": "dsh-fish-ui",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "type": "module",
   "description": "Six illustrated scenes, a scene-aware launch animation, adjustable glass and live model and reasoning controls for DeepSeek Harness.",
   "license": "MIT",
