@@ -115,7 +115,7 @@ export function dfCreateScenePlate(React: ReactRuntime) {
       return () => observer.disconnect()
     }, [scene, live])
     const artwork = h('g', { className: 'df-scene-print' },
-      h('image', { href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }))
+      h('image', { key: scene, href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }))
     return h('svg', { className, ref, 'data-df-painting': scene, viewBox: '0 0 600 300', preserveAspectRatio: align, 'aria-hidden': true, focusable: false },
       artwork,
       live && h('svg', { width: 600, height: 300, viewBox: '0 0 600 300' },
@@ -186,6 +186,11 @@ body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { --df-print-opacity: 
 .df-scene-weather { opacity: 0; }
 html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-time: 1.5s; }
 @media (prefers-reduced-motion: no-preference) {
+  html:not(.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]) :is(.fish-cover,.fish-backdrop) .df-scene-print > image {
+    transform-box: fill-box;
+    transform-origin: center;
+    animation: df-scene-develop 380ms cubic-bezier(.22,.72,.2,1);
+  }
   html:not([data-fish-pace="still"]) .df-scene-weather { opacity: .75; }
   .df-canyon-tracer { animation: df-canyon-current var(--df-weather-time) linear infinite; }
   .df-polar-silk { animation: df-polar-silk var(--df-weather-time) ease-in-out infinite alternate; }
@@ -194,6 +199,10 @@ html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-t
   .df-harbour-rain { animation: df-harbour-rain var(--df-rain-time) linear infinite; }
   .df-jade-ripples { transform-box: view-box; transform-origin: 55.17% 67%; animation: df-jade-ripple calc(var(--df-weather-time) * .36) ease-out infinite; }
   html:is([data-fish-pace="still"],[data-fish-paused]) .df-scene-weather * { animation-play-state: paused; }
+}
+@keyframes df-scene-develop {
+  from { opacity: .64; transform: scale(1.018); }
+  to { opacity: 1; transform: scale(1); }
 }
 html[data-fish-pace="still"] .df-scene-arrival, html[data-fish-paused] .df-scene-arrival { display: none; }
 @media (prefers-reduced-motion: reduce) { .df-scene-arrival { display: none; } }

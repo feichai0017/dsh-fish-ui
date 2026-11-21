@@ -6,6 +6,12 @@
 
 Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fish-ui** to change the appearance.
 
+## Window and menus
+
+The sidebar, top bar, tools pane and composer pick up a tint from the current painting. The accent you choose marks focus and selection. The `/` command and `@` reference menus use a denser surface to keep the conversation behind them out of the way. Arrow keys move the accent marker to the current option.
+
+Toggle **Frosted glass** under **Interface details → Fish finish**. The menus also use a solid surface when the system requests reduced transparency or higher contrast. With motion enabled, a newly selected painting gently settles into view.
+
 ## Model and reasoning picker
 
 Open the composer's model button. Select a model card, then choose one of the reasoning levels offered for that model. The ridge changes shape with the model and rises with the effort setting. The compact trigger follows the session through reasoning and text output. Use the original model row to search the full provider catalog. Harness applies selections to the current session and reports pending or rejected changes.

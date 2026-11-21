@@ -1,6 +1,8 @@
 import fishLogo from '../icon.svg'
 import { dfCreateScenePlate, dfPlaySceneArrival, DF_SCENE_ART_CSS } from './scene-art'
 import { installModelStudio } from './model-studio'
+import { shellGlassCss } from './shell-glass'
+import { commandGlassCss } from './command-glass'
 import { dfInstallReplyMotion } from './reply-motion'
 
 /**
@@ -1006,70 +1008,6 @@ const CSS = `
 
 /* ------------------------------------------------------------------ accents */
 
-/* Composer focus: the shipped 0.5px hairline turns whale blue and an inset ring
-   thickens the edge. The inset shadow follows the card radius and costs no
-   layout, and a focused draft editor is the only trigger — toolbar buttons
-   inside the card keep the resting look. */
-/* Frosted composer, but only where something interesting runs behind it: while a
-   Session is open the messages scroll under the card, so glass reads as glass. On
-   the blank home the card sits on flat dotted paper, where translucency only muddies
-   the surface — there it keeps the shipped solid background. */
-/* On the blank home the card must be fully opaque: the shipped menu surface is
-   slightly translucent, so the wave field behind it would show through the card as
-   moving light bands. */
-/* The blank home keeps the card solid only when frosting is switched off. */
-:root.df-off-glass body:has(canvas.dwe-whale) [data-composer-card] {
-  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1));
-}
-
-:root:not(.df-off-glass) [data-composer-card] {
-  /* Much more translucent than the host surface, with a stronger blur and a touch of
-     saturation: the frosted look only reads if the backdrop is actually visible. */
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--dsw-alias-label-primary) 7%, transparent),
-      color-mix(in srgb, var(--dsw-alias-label-primary) 2%, transparent) 42%,
-      transparent
-    ),
-    color-mix(in srgb, var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1)) 54%, transparent);
-  -webkit-backdrop-filter: blur(26px) saturate(1.25);
-  backdrop-filter: blur(26px) saturate(1.25);
-}
-
-/* Composer focus: a soft whale-blue ring fades in under the card's own hairline
-   instead of recolouring it (a rebinding token switches instantly and reads as a
-   pop). Both states declare the same shadow layers so the transition interpolates
-   every layer, and the easing starts quickly and settles slowly. */
-/* Focus ring in light grey: the composer is a text surface, so the highlight stays
-   neutral and the accent colour is reserved for content. */
-:root {
-  --df-focus-ink: 124, 128, 136;
-}
-
-body[data-ds-dark-theme] {
-  --df-focus-ink: 224, 226, 232;
-}
-
-:root:not(.df-off-focusring) [data-composer-card] {
-  box-shadow:
-    var(--dsw-elevation-soft),
-    inset 0 0 0 1px rgba(var(--df-focus-ink), 0),
-    0 0 0 0 rgba(var(--df-focus-ink), 0),
-    0 0 12px 0 rgba(var(--df-focus-ink), 0),
-    0 0 32px 2px rgba(var(--df-focus-ink), 0);
-  transition: box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-:root:not(.df-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
-  box-shadow:
-    var(--dsw-elevation-soft),
-    inset 0 0 0 1.2px rgba(var(--df-focus-ink), 0.92),
-    0 0 0 3px rgba(var(--df-focus-ink), 0.12),
-    0 0 14px 1px rgba(var(--df-focus-ink), 0.22),
-    0 0 40px 6px rgba(var(--df-focus-ink), 0.1);
-}
-
 /* --------------------------------------------------- frame-wide ambient layer */
 .df-overlay {
   position: fixed;
@@ -1529,16 +1467,6 @@ body {
     0 0 0 1px color-mix(in srgb, var(--df-accent) 52%, transparent),
     0 0 14px 1px color-mix(in srgb, var(--df-accent) 22%, transparent),
     0 0 38px 8px color-mix(in srgb, var(--df-accent) 10%, transparent);
-}
-
-/* Selected conversation: a flat black plate in dark theme instead of the host's
-   translucent hover fill. */
-body[data-ds-dark-theme] [class*="_sessionRow"][class*="_selected"] {
-  background-color: #0d0d10;
-}
-
-body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
-  background-color: #e9e9ec;
 }
 
 :root:not(.df-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
@@ -2392,6 +2320,13 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       if (dfTheme === null) return
       const ink = dfSettings.accentColor.toUpperCase()
       const layers = new Map<string, FishThemeTokens>()
+      if (dfSettings.aurora) {
+        const [deep, , glow] = SCENES[dfSettings.scene].colors
+        layers.set('scene-' + dfSettings.scene, {
+          '--df-scene-deep': dfModes(deep, deep),
+          '--df-scene-glow': dfModes(glow, glow),
+        })
+      }
       if (dfSettings.catppuccin) layers.set('palette', DF_CAT)
       const channels = [1, 3, 5].map(start => parseInt(ink.slice(start, start + 2), 16))
       const mixInk = (end: number, weight: number) => '#' + channels.map(channel =>
@@ -2550,7 +2485,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           ripple: ['\u6307\u9488\u6d9f\u6f2a', '\u9f20\u6807\u5212\u8fc7\u70b9\u9635\u65f6\u8361\u5f00\u7684\u5149\u73af'],
           thinkingSphere: ['\u70b9\u9635\u7403', '\u601d\u8003\u65f6\u65cb\u8f6c\u7684\u5c0f\u7403'],
           thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
-          glass: ['\u78e8\u7802\u73bb\u7483', '\u4f1a\u8bdd\u9875\u8f93\u5165\u6846\u7684\u534a\u900f\u660e\u6548\u679c'],
+          glass: ['磨砂玻璃', '为两侧栏、顶栏、输入框和命令菜单加入磨砂质感'],
           stats: ['\u7528\u91cf\u8bfb\u6570', '\u5728\u53d1\u9001\u6309\u94ae\u6392\u663e\u793a\u4e0a\u4e0b\u6587\u4e0e Token \u7528\u91cf'],
           bold: ['\u9cb8\u9c7c\u84dd\u52a0\u7c97', '\u804a\u5929\u91cc\u7684\u52a0\u7c97\u6587\u5b57\u53d8\u6210\u9cb8\u9c7c\u84dd'],
           focusRing: ['\u805a\u7126\u63cf\u8fb9', '\u8f93\u5165\u6846\u805a\u7126\u65f6\u7684\u67d4\u5149\u63cf\u8fb9'],
@@ -2571,7 +2506,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           ripple: ['Pointer ripples', 'Light rings where the pointer crosses the field'],
           thinkingSphere: ['Dot sphere', 'The rotating point-sphere beside the live status'],
           thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
-          glass: ['Frosted glass', 'Translucent input card on session pages'],
+          glass: ['Frosted glass', 'Frost the side panels, top bar, composer and command menu'],
           bold: ['Whale-blue bold', 'Bold runs in chat prose take the accent colour'],
           focusRing: ['Focus ring', 'The soft ring while the composer has focus'],
           diff: ['Re-inked diffs', 'Added and removed lines in the blue family'],
@@ -2733,10 +2668,6 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         border-radius: 16px !important;
         transition: box-shadow .25s ease, border-color .25s ease;
       }
-      :root:not(.df-off-fishglow) [data-composer-card]:focus-within {
-        box-shadow: 0 0 0 1px var(--fish-ink),
-                    0 18px 50px -28px var(--fish-ink) !important;
-      }
       :root:not(.df-off-fishcode) pre {
         border-radius: 12px;
         border: 1px solid color-mix(in srgb, var(--dsw-alias-border-l1, #333) 70%, transparent);
@@ -2794,6 +2725,11 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       }
       [data-composer-card].fish-tilting {
         transform: perspective(900px) rotateX(var(--fish-tilt-x)) rotateY(var(--fish-tilt-y));
+      }
+      /* Harness anchors the slash and mention menus inside the card, above its bounds. */
+      [data-composer-card].fish-tilting:has([data-composer-overlay] :is([data-trigger-menu], [role="listbox"], input[type="text"])) {
+        transform: none;
+        transition-property: box-shadow, border-color;
       }
       :root:not(.df-off-textmotion) [data-chat-flow-kind="assistant-step"] {
         animation: fish-rise .4s cubic-bezier(.16,1,.3,1) both;
@@ -3161,7 +3097,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           item('thinkingSphere'), item('thinkingLabel'),
         ]),
         group(copy.groups.composer, [
-          item('glass'), item('effortBadge'),
+          item('effortBadge'),
         ]),
         group(copy.groups.sidebar, [
           item('sidebarDots'), item('sidebarRail'),
@@ -3170,7 +3106,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           item('bold'), item('focusRing'), item('diff'),
         ]),
         group(zh ? 'Fish 字体与质感' : 'Fish finish', [
-          item('fishFont'), item('fishGlow'), item('fishMotion'), item('fishCode'),
+          item('glass'), item('fishFont'), item('fishGlow'), item('fishMotion'), item('fishCode'),
         ]),
         group(zh ? '配色与交互' : 'Color & interaction', [
           item('catppuccin'), item('hostIcons'), item('cursor'), item('textMotion'),
@@ -3491,7 +3427,10 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         ctx.effect(() => {
           const style = document.createElement('style')
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
-          style.textContent = FISH_FX_CSS + '\n' + FISH_STUDIO_CSS + '\n' + DF_SCENE_ART_CSS + '\n' + productIconCss()
+          style.textContent = [
+            FISH_FX_CSS, FISH_STUDIO_CSS, DF_SCENE_ART_CSS, productIconCss(),
+            shellGlassCss, commandGlassCss,
+          ].join('\n')
           document.head.append(style)
           return () => style.remove()
         }, 'dsh-fish-ui: fx styles')

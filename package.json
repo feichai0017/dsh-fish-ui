@@ -1,6 +1,6 @@
 {
   "name": "dsh-fish-ui",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "type": "module",
   "description": "Live model and reasoning controls, six illustrated conversation scenes and first-reply motion for DeepSeek Harness.",
   "license": "MIT",
