@@ -1,8 +1,16 @@
-/**
- * dsh-fish-ui — host half.
- *
- * The visual work is entirely in client.js; this side exists so the bundle
- * has a normal host entry and can be enabled, disabled and removed like any
- * other plugin.
- */
-export function apply() {}
+import Schema from '@deepseek-ai/schemastery'
+
+/** Profile-owned preferences. Volatile fields update without restarting the UI. */
+export const Config = Schema.object(Object.fromEntries([
+  'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
+  'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
+  'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
+].map(key => [key, Schema.boolean().default(true).volatile()]).concat([
+  ['settingsMigrated', Schema.boolean().default(false).volatile().hidden()],
+])))
+
+export function apply(ctx) {
+  ctx.inject(['settings'], scope => {
+    scope.effect(() => scope.settings.configure({ auto: false }, ctx.fiber), 'dsh-fish-ui: preferences')
+  })
+}
