@@ -1,0 +1,53 @@
+{
+  "name": "dsh-fish-ui",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "A Maple Mono NF CN finish layer for DeepSeek Harness: fonts, composer glow, code and motion polish. Designed to sit on top of deepclear-ui and stay out of its way.",
+  "license": "MIT",
+  "author": "Guocheng Song",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/feichai0017/dsh-fish-ui.git"
+  },
+  "homepage": "https://github.com/feichai0017/dsh-fish-ui#readme",
+  "bugs": {
+    "url": "https://github.com/feichai0017/dsh-fish-ui/issues"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true
+    }
+  },
+  "engines": {
+    "dsh": ">=0.2.2-rc.3 <0.3.0",
+    "node": ">=22"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "theme",
+    "font",
+    "maple-mono",
+    "deepclear-ui",
+    "appearance"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
