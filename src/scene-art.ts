@@ -5,7 +5,7 @@ import dunes from '../assets/scenes/dunes.webp'
 import rain from '../assets/scenes/rain.webp'
 import lotus from '../assets/scenes/lotus.webp'
 
-const paintings = { atlas, aurora, orbit, dunes, rain, lotus }
+export const paintings = { atlas, aurora, orbit, dunes, rain, lotus }
 type Scene = keyof typeof paintings
 type PlateProps = { scene: Scene; className?: string; align?: string; live?: boolean }
 type ReactRuntime = typeof import('react')

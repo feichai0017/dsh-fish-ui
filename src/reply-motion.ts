@@ -34,7 +34,9 @@ interface ReplyScope {
 }
 // Cordis makes this optional service available inside the injection below.
 declare global {
-  interface FishClientContext { sessions: ReplyScope['sessions'] }
+  interface FishClientContext {
+    sessions: ReplyScope['sessions'] & { list: { getSnapshot(): { phase: string; byId: Record<string, unknown> } } }
+  }
 }
 type ReplyProps = { binding?: ReplyBinding }
 

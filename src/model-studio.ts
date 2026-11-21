@@ -88,9 +88,13 @@ function ridgeRows(power: number, variant: string) {
 const STUDIO_CSS = `
 [role="menu"]:has(.df-ms-hero) {
   --df-ms-ink: var(--df-accent,var(--dsw-alias-brand-primary,#4d6bfe));
-  --df-ms-edge: var(--dsw-alias-border-l1,#414550);
-  --df-ms-muted: var(--dsw-alias-label-secondary,#929bb0);
-  background:linear-gradient(var(--dsw-alias-bg-base, transparent),var(--dsw-alias-bg-base, transparent)) var(--df-ms-paper,#f5f6fa);
+  --df-ms-edge: var(--df-shell-line,var(--dsw-alias-border-l1,#414550));
+  --df-ms-muted: var(--df-shell-muted,var(--dsw-alias-label-secondary,#929bb0));
+  --df-ms-surface: var(--df-shell-surface,var(--dsw-alias-bg-base,var(--df-ms-paper,#f5f6fa)));
+  --df-ms-tile: var(--df-shell-raised,var(--df-ms-surface));
+  --df-ms-light: color-mix(in srgb,var(--df-scene-glow,#9cbfff) 60%,white);
+  background:var(--df-ms-surface);color:var(--df-shell-ink,var(--dsw-alias-label-primary,inherit));
+  box-shadow:inset 0 0 0 1px var(--df-ms-edge), 0 12px 36px -12px var(--df-shell-shadow,rgb(21 31 56 / .24));
   width:min(436px,calc(100vw - 24px));min-width:0;max-width:min(436px,calc(100vw - 24px));
   max-height:min(470px,calc(100dvh - 80px));padding:6px;gap:1px;border-radius:16px;
   overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;
@@ -98,16 +102,17 @@ const STUDIO_CSS = `
 body[data-ds-dark-theme] [role="menu"]:has(.df-ms-hero) {--df-ms-paper:#1b1e26}
 .df-ms-hero {
   position:relative;isolation:isolate;overflow:hidden;flex:none;order:-5;
-  padding:13px 16px 14px;min-height:102px;border-radius:10px;margin:0 0 5px;
-  background:linear-gradient(111deg,#101622,color-mix(in srgb,var(--df-ms-ink) 24%,#0e1525));
+  padding:14px 17px;min-height:108px;border-radius:10px;margin:0 0 5px;
+  background:radial-gradient(ellipse at 86% 64%,color-mix(in srgb,var(--df-scene-deep,#354d82) 70%,#182d50),transparent 67%),
+    linear-gradient(116deg,#0c1424,color-mix(in srgb,var(--df-ms-ink) 15%,#101c32));
   color:#f1f4ff;box-sizing:border-box;box-shadow:inset 0 0 0 1px #abbdff20
 }
-.df-ms-ridge {position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;overflow:hidden}
+.df-ms-ridge {position:absolute;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;overflow:hidden;
+  mask-image:linear-gradient(90deg,transparent 20%,black 54%)}
 .df-ms-ridge path {transition:d .42s cubic-bezier(.2,.75,.25,1)}
-.df-ms-ridge g {transform-origin:center;animation:df-ms-tide 6s ease-in-out infinite alternate}
-.df-ms-hero[data-phase="thinking"] .df-ms-ridge g {animation-duration:2.6s}
-.df-ms-hero[data-phase="streaming"] .df-ms-ridge g {animation-duration:4s}
-.df-ms-hero[data-phase="done"] .df-ms-ridge g {animation:none}
+.df-ms-ridge g {transform-origin:center}
+.df-ms-hero[data-phase="thinking"] .df-ms-ridge g {animation:df-ms-tide 2.6s ease-in-out infinite alternate}
+.df-ms-hero[data-phase="streaming"] .df-ms-ridge g {animation:df-ms-tide 4s ease-in-out infinite alternate}
 @keyframes df-ms-tide {from{transform:translate(0,0)}to{transform:translate(3px,-2.5px)}}
 .df-ms-family,.df-ms-title,.df-ms-detail {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .df-ms-family {max-width:66%;font:10px/1.5 ui-monospace,monospace;color:#c5d2f7;letter-spacing:.04em}
@@ -124,7 +129,7 @@ body[data-ds-dark-theme] [role="menu"]:has(.df-ms-hero) {--df-ms-paper:#1b1e26}
   appearance:none;display:flex;align-items:center;gap:6px;min-width:0;font:inherit;line-height:1.2;
   border:1px solid var(--df-ms-edge);border-radius:8px;background:transparent;color:inherit;cursor:pointer
 }
-.df-ms-models button {padding:8px 9px;min-height:44px;text-align:start}
+.df-ms-models button {padding:8px 9px;min-height:46px;text-align:start;background:var(--df-ms-tile)}
 .df-ms-models button > span:nth-child(2) {min-width:0;flex:1}
 .df-ms-models strong,.df-ms-models small {display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .df-ms-models strong {font-size:12px;font-weight:650}.df-ms-models small {color:var(--df-ms-muted);font-size:10px;margin-top:3px}
@@ -136,7 +141,8 @@ body[data-ds-dark-theme] [role="menu"]:has(.df-ms-hero) {--df-ms-paper:#1b1e26}
   color:var(--df-ms-ink);background:color-mix(in srgb,var(--df-ms-ink) 12%,transparent)}
 .df-ms-icon {width:14px;height:14px;flex:none}
 .df-ms-check {color:var(--df-ms-ink);font-weight:700}
-.df-ms-efforts button {min-height:28px;justify-content:center;flex-wrap:wrap;padding:4px 5px;font-size:11px;border-color:transparent;border-radius:5px;overflow-wrap:anywhere}
+.df-ms-efforts {background:var(--df-ms-tile)}
+.df-ms-efforts button {min-height:30px;justify-content:center;flex-wrap:wrap;padding:4px 5px;font-size:11px;border-color:transparent;border-radius:5px;overflow-wrap:anywhere}
 .df-ms-models button:focus-visible,.df-ms-efforts button:focus-visible {outline:2px solid var(--df-ms-ink);outline-offset:-2px}
 .df-ms-models button:hover:not(:disabled),.df-ms-efforts button:hover:not(:disabled) {background:color-mix(in srgb,var(--df-ms-ink) 10%,transparent)}
 .df-ms-models button:disabled,.df-ms-efforts button:disabled {opacity:.6;cursor:default}
@@ -151,7 +157,8 @@ body[data-ds-dark-theme] [role="menu"]:has(.df-ms-hero) {--df-ms-paper:#1b1e26}
 button[aria-haspopup=menu]:has(.df-ms-trigger) {box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--df-accent,#4d6bfe) 26%,transparent);border-radius:7px}
 button[aria-haspopup=menu]:has(.df-ms-trigger):focus-visible {outline:2px solid var(--df-accent,#4d6bfe);outline-offset:1px}
 html.df-off-effortbadge .df-ms-trigger .df-ms-signal {display:none}
-html:is(.df-off-fishmotion,.df-off-effortbadge,[data-fish-paused]) :is(.df-ms-ridge g,.df-ms-caption .df-ms-signal) {animation:none}
+html:is(.df-off-fishmotion,.df-off-effortbadge,[data-fish-pace="still"],[data-fish-paused]) :is(.df-ms-ridge g,.df-ms-caption .df-ms-signal) {animation:none!important}
+html:is(.df-off-fishmotion,[data-fish-pace="still"]) :is(.df-ms-ridge path,.df-ms-signal i) {transition:none}
 @media (prefers-reduced-motion:reduce) {.df-ms-ridge path,.df-ms-signal i {transition:none}.df-ms-ridge g,.df-ms-caption .df-ms-signal {animation:none!important}}
 @media (max-height:480px) {.df-ms-hero {min-height:0;padding:7px 12px}.df-ms-title {font-size:23px;margin:1px 0}}
 `
@@ -198,14 +205,21 @@ export function installModelStudio(ctx: FishClientContext, React: ReactRuntime) 
   function Ridges({ power, variant }: { power: number; variant: string }) {
     const uid = React.useId().replace(/[^a-z0-9_-]/gi, '')
     const gradient = 'df-ms-crest-' + uid
+    const wash = 'df-ms-wash-' + uid
     const rows = React.useMemo(() => ridgeRows(power, variant), [power, variant])
     return h('svg', { className: 'df-ms-ridge', viewBox: '0 0 460 118', preserveAspectRatio: 'none', 'aria-hidden': true },
-      h('defs', null, h('linearGradient', { id: gradient, x1: '0%', x2: '100%' },
+      h('defs', null,
+        h('linearGradient', { id: wash, x1: '0%', y1: '0%', x2: '15%', y2: '100%' },
+          h('stop', { offset: '0%', stopColor: 'var(--df-ms-light)', stopOpacity: .27 }),
+          h('stop', { offset: '46%', stopColor: 'var(--df-ms-ink)', stopOpacity: .13 }),
+          h('stop', { offset: '100%', stopColor: 'var(--df-ms-ink)', stopOpacity: 0 })),
+        h('linearGradient', { id: gradient, x1: '0%', x2: '100%' },
         h('stop', { offset: '0%', stopColor: 'var(--df-ms-ink)', stopOpacity: 0 }),
         h('stop', { offset: '30%', stopColor: 'var(--df-ms-ink)', stopOpacity: .25 }),
-        h('stop', { offset: '72%', stopColor: '#bed8ff', stopOpacity: .88 }),
+        h('stop', { offset: '72%', stopColor: 'var(--df-ms-light)', stopOpacity: .90 }),
         h('stop', { offset: '100%', stopColor: 'var(--df-ms-ink)', stopOpacity: .32 }))),
       h('g', { fill: 'none', stroke: 'url(#' + gradient + ')' },
+        h('path', { d: rows[0] + ' L480 130 H90 Z', fill: 'url(#' + wash + ')', stroke: 'none' }),
         rows.map((d, i) => h('path', { key: i, d, strokeWidth: i % 6 === 0 ? .95 : .57,
           opacity: .39 + .47 * (.5 + .5 * Math.cos(i * .38)) }))))
   }

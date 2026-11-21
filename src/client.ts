@@ -1,5 +1,7 @@
+import { playFishLaunch, DF_LAUNCH_CSS } from './launch'
+import { studioFinishCss } from './studio-finish'
 import fishLogo from '../icon.svg'
-import { dfCreateScenePlate, dfPlaySceneArrival, DF_SCENE_ART_CSS } from './scene-art'
+import { dfCreateScenePlate, dfPlaySceneArrival, paintings, DF_SCENE_ART_CSS } from './scene-art'
 import { installModelStudio } from './model-studio'
 import { shellGlassCss } from './shell-glass'
 import { commandGlassCss } from './command-glass'
@@ -98,6 +100,7 @@ window.__ModuleLoader__.load({
       rain: ['M4 15V9h5v6m0-6V6h6v9m0-4h5v4 M2 16h20 M6 19l-1 2m7-2-1 2m7-2-1 2 M17 4l-1 2m5-3-1 2', 'M4 9h5V6h6v5h5v5H4Z'],
       lotus: ['M12 18c-4-3-5-7 0-13 5 6 4 10 0 13Z M10 17c-4 0-7-3-8-8 4 .3 7 2 8 4m4 4c4 0 7-3 8-8-4 .3-7 2-8 4 M4 20c4 1 12 1 16 0', 'M12 18c-4-3-5-7 0-13 5 6 4 10 0 13Z'],
       gallery: ['M3 4h7v7H3Zm11 0h7v7h-7ZM3 15h7v6H3Zm11 0h7v6h-7Z', 'M3 4h7v7H3Zm11 11h7v6h-7Z'],
+      launchIntro: ['M3 5h18v14H3ZM10 9l5 3-5 3Z', 'M10 9l5 3-5 3Z'],
       sliders: ['M3 6h4m5 0h9M3 12h10m5 0h3M3 18h3m5 0h10 M7 4v4h4V4Zm7 6v4h4v-4Zm-8 6v4h4v-4Z', 'M7 4h4v4H7Zm7 6h4v4h-4Zm-8 6h4v4H6Z'],
       reading: ['M3 5c4-1 6-.5 9 2 3-2.5 5-3 9-2v13c-4-1-6-.5-9 2-3-2.5-5-3-9-2ZM12 7v13', 'M3 5c4-1 6-.5 9 2v13c-3-2.5-5-3-9-2Z'],
       code: ['m7 7-5 5 5 5m10-10 5 5-5 5m-4-13-3 16'],
@@ -385,7 +388,8 @@ window.__ModuleLoader__.load({
       const portraitDark = invertedDots()
       const wordmark = lockupDots()
       const motion = window.matchMedia('(prefers-reduced-motion: reduce)')
-      let reduced = motion.matches
+      let reduced = motion.matches || dfSettings.sceneMotion === 'still'
+      let wordmarkInk = '122, 170, 255'
       const started = performance.now()
       // The reveal clock starts on the first paint that actually has a canvas to draw
       // into, otherwise the animation can finish while the element is still sizing.
@@ -446,15 +450,15 @@ window.__ModuleLoader__.load({
       let pointerY = -1e6
       let pointerActive = false
       const onPointerMove = (event: PointerEvent) => {
+        if (reduced) return
         pointerX = event.clientX - boxLeft
         pointerY = event.clientY - boxTop
         pointerActive = pointerX >= 0 && pointerY >= 0 && pointerX <= boxWidth && pointerY <= boxHeight
         if (pointerActive) {
           trail.push({ x: pointerX, y: pointerY, at: performance.now() })
           if (trail.length > 8) trail.shift()
-        spawnRipple()
+          spawnRipple()
         }
-        if (reduced) paint(performance.now())
       }
       const onPointerLeave = () => { pointerActive = false }
       /** Moving the pointer over the field band leaves a light ripple behind. */
@@ -474,6 +478,7 @@ window.__ModuleLoader__.load({
       /** Click ripples: origin plus start time, oldest first. */
       const ripples: { x: number; y: number; at: number }[] = []
       const onPointerDown = (event: PointerEvent) => {
+        if (reduced) return
         const x = event.clientX - boxLeft
         const y = event.clientY - boxTop
         if (x < 0 || y < 0 || x > boxWidth || y > boxHeight) return
@@ -861,7 +866,7 @@ window.__ModuleLoader__.load({
         paintGroup(portraitPaths, dark ? 1.15 : 1.8, ink)
         if (showText) {
           paintGroup(wordmarkPaths[0], dark ? 1 : 1.2, ink)
-          paintGroup(wordmarkPaths[1], dark ? 1 : 1.2, '122, 170, 255')
+          paintGroup(wordmarkPaths[1], dark ? 1 : 1.2, wordmarkInk)
         }
         if (DEBUG) {
           context.fillStyle = '#ff5555'
@@ -902,11 +907,15 @@ window.__ModuleLoader__.load({
       window.addEventListener('pointerdown', onPointerDown, { passive: true })
       const refresh = () => {
         if (disposed) return
+        reduced = motion.matches || dfSettings.sceneMotion === 'still'
+        const token = getComputedStyle(canvas).getPropertyValue('--df-accent').trim()
+        const accent = /^#[0-9a-f]{6}$/i.test(token) ? token : dfSettings.accentColor
+        wordmarkInk = [1, 3, 5].map(start => parseInt(accent.slice(start, start + 2), 16)).join(', ')
         cancelAnimationFrame(frame)
         frame = 0
         if (!document.hidden) frame = requestAnimationFrame(paint)
       }
-      const onMotion = () => { reduced = motion.matches; refresh() }
+      const onMotion = refresh
       const themeObserver = new MutationObserver(refresh)
       themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
       const unsubscribeSettings = dfSubscribeSettings(refresh)
@@ -939,18 +948,28 @@ window.__ModuleLoader__.load({
      * @returns the layout-neutral frame.
      */
     function HeroFrame({ hero, children }: { hero: boolean; children?: React.ReactNode }) {
-      const { values } = useDfSettings()
+      const { values, status } = useDfSettings()
       const show = hero === true && values.hero
+      const frameRef = React.useRef<HTMLDivElement>(null)
+      React.useEffect(() => {
+        if (frameRef.current) visitLaunchFrame?.(frameRef.current, hero === true, status === 'ready')
+      }, [hero, status, values.launchIntro, values.sceneMotion])
       const canvasRef = React.useRef<HTMLCanvasElement>(null)
       React.useEffect(() => {
         const canvas = canvasRef.current
         if (!show || canvas === null) return undefined
         return attachMascot(canvas)
       }, [show])
-      return h('div', { className: 'dwe-frame' },
+      const scene = SCENES[values.scene]
+      const label = dfUsesChinese() ? scene.zh : scene.en
+      return h('div', { ref: frameRef, className: 'dwe-frame', 'data-df-welcome': hero === true },
         values.aurora && h('div', { className: 'fish-backdrop', 'data-home': hero === true, 'aria-hidden': true },
           h(FishPlate, { scene: values.scene, live: true })),
-        show ? h('div', { key: 'sign', className: 'dwe-sign' }, 'dsh-fish-ui') : null,
+        hero && values.aurora ? h('button', { type: 'button', className: 'df-welcome-scene', key: 'scene',
+          onClick: () => dfSetSheetOpen(true), 'aria-haspopup': 'dialog',
+          'aria-label': (dfUsesChinese() ? '更换场景，当前为' : 'Change scene, currently ') + label },
+          h(FishIcon, { name: scene.icon, size: 15 }), h('span', null, label),
+          h('span', { 'aria-hidden': true, className: 'df-welcome-chevron' }, '›')) : null,
         show ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
         children)
     }
@@ -994,20 +1013,24 @@ const CSS = `
 }
 
 
-/* Product signature: only while the blank home is on screen, because the
-   element lives inside the hero frame layer. */
-.dwe-sign {
-  position: fixed;
-  right: 14px;
-  bottom: 10px;
-  z-index: 2147483000;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--dsw-alias-label-tertiary);
-  opacity: 0.28;
-  pointer-events: none;
-  user-select: none;
+/* Anchor the gallery shortcut within its conversation pane, including split views. */
+.df-welcome-scene {
+  position: absolute; inset-block-start: 12px; inset-inline-end: 14px; z-index: 1;
+  display: inline-flex; align-items: center; gap: 7px; max-width: calc(100% - 28px);
+  min-height: 30px; padding: 3px 10px; border: 1px solid var(--df-shell-line);
+  border-radius: 999px; background: var(--df-shell-raised, var(--dsw-alias-bg-layer-1));
+  color: var(--df-shell-ink, var(--dsw-alias-label-primary)); font: inherit; font-size: 12px; cursor: pointer;
 }
+.df-welcome-scene svg, .df-welcome-chevron { color: var(--df-accent, #4d6bfe); }
+.df-welcome-scene:focus-visible, .df-replay:focus-visible { outline: 2px solid var(--df-accent); outline-offset: 2px; }
+.df-welcome-scene:hover, .df-replay:hover:enabled { border-color: var(--df-accent); }
+.df-launch-options { display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--fish-edge); }
+.df-launch-options > .df-set-row { flex: 1; min-width: 0; }
+.df-replay { flex: none; display: inline-flex; align-items: center; gap: 5px; font: inherit; font-size: 12px;
+  min-height: 30px; padding: 3px 9px; border-radius: 7px; border: 1px solid var(--fish-edge);
+  color: var(--fish-label); background: var(--fish-well); cursor: pointer; }
+.df-replay:disabled { opacity: .6; cursor: default; }
+@media (max-height: 380px) { .df-welcome-scene { display: none; } }
 
 /* ------------------------------------------------------------------ accents */
 
@@ -1039,137 +1062,6 @@ const CSS = `
   opacity: 0.85;
 }
 
-
-/* ------------------------------------------------------------- startup splash */
-.df-splash {
-  position: fixed;
-  inset: 0;
-  z-index: 2147483600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #050507;
-  pointer-events: none;
-  animation: df-splash-out 460ms 1860ms cubic-bezier(0.4, 0, 1, 1) forwards;
-  contain: strict;
-}
-
-/* Compositor-only animation: every property below is opacity or transform. */
-.df-splash-grid {
-  position: absolute;
-  inset: -2px;
-  background-image: radial-gradient(circle at 1px 1px, rgba(186, 196, 214, 0.5) 0.9px, transparent 1.15px);
-  background-size: 18px 18px;
-  opacity: 0;
-  will-change: opacity;
-  animation: df-splash-grid-in 620ms 60ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.df-splash-ring {
-  position: absolute;
-  width: 108vmax;
-  height: 108vmax;
-  border: 1px solid rgba(176, 196, 232, 0.55);
-  border-radius: 50%;
-  opacity: 0;
-  transform: scale(0.08);
-  will-change: transform, opacity;
-  animation: df-splash-ring 900ms 60ms cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
-}
-
-.df-splash-mark {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.08em;
-  overflow: hidden;
-}
-
-.df-splash-line {
-  display: block;
-  font: 800 clamp(38px, 7.8vw, 108px) / 1.14 "Segoe UI", system-ui, sans-serif;
-  letter-spacing: 0.09em;
-  color: transparent;
-  background-size: 5px 5px;
-  -webkit-background-clip: text;
-  background-clip: text;
-  opacity: 0;
-  transform: translate3d(0, 14px, 0) scale(0.985);
-  will-change: transform, opacity;
-  animation: df-splash-line 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.df-splash-deepseek {
-  background-image: radial-gradient(circle at 1px 1px, #eef0f4 1.1px, transparent 1.35px);
-}
-
-.df-splash-harness {
-  background-image: radial-gradient(circle at 1px 1px, #7aaaff 1.1px, transparent 1.35px);
-  animation-delay: 170ms;
-}
-
-.df-splash-sheen {
-  position: absolute;
-  top: -10%;
-  bottom: -10%;
-  left: 0;
-  width: 34%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.42) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  opacity: 0;
-  transform: translate3d(-120%, 0, 0);
-  will-change: transform, opacity;
-  animation: df-splash-sheen 820ms 1080ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
-}
-
-.df-splash-veil {
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(circle at 50% 46%, rgba(0, 0, 0, 0) 38%, rgba(0, 0, 0, 0.62) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 26%);
-}
-
-@keyframes df-splash-grid-in {
-  to { opacity: 0.55; }
-}
-
-@keyframes df-splash-ring {
-  0% { opacity: 0; transform: scale(0.08); }
-  30% { opacity: 0.5; }
-  100% { opacity: 0; transform: scale(1.15); }
-}
-
-@keyframes df-splash-line {
-  to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
-}
-
-@keyframes df-splash-sheen {
-  0% { opacity: 0; transform: translate3d(-120%, 0, 0); }
-  20% { opacity: 0.9; }
-  100% { opacity: 0; transform: translate3d(300%, 0, 0); }
-}
-
-@keyframes df-splash-out {
-  to { opacity: 0; visibility: hidden; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .df-splash,
-  .df-splash-grid,
-  .df-splash-ring,
-  .df-splash-line,
-  .df-splash-sheen {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-}
 
 /* ------------------------------------------------------------ settings page */
 .df-set {
@@ -2187,52 +2079,6 @@ body {
       })
     }
 
-    /**
-     * Startup splash: the dot wordmark over the boot screen.
-     *
-     * The whole animation is CSS transform/opacity so the compositor drives it: no canvas,
-     * no per-frame JavaScript while the app is still booting.
-     */
-    function dfPlaySplash() {
-      if (window.__dfSplashPlayed === true) return
-      window.__dfSplashPlayed = true
-      try {
-        if (typeof document === 'undefined' || document.body === null) return
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
-        const layer = document.createElement('div')
-        layer.className = 'df-splash'
-        layer.setAttribute('aria-hidden', 'true')
-        const grid = document.createElement('div')
-        grid.className = 'df-splash-grid'
-        const ring = document.createElement('div')
-        ring.className = 'df-splash-ring'
-        const mark = document.createElement('div')
-        mark.className = 'df-splash-mark'
-        const deepseek = document.createElement('span')
-        deepseek.className = 'df-splash-line df-splash-deepseek'
-        deepseek.textContent = 'deepseek'
-        const harness = document.createElement('span')
-        harness.className = 'df-splash-line df-splash-harness'
-        harness.textContent = 'harness'
-        const sheen = document.createElement('div')
-        sheen.className = 'df-splash-sheen'
-        mark.append(deepseek, harness, sheen)
-        const veil = document.createElement('div')
-        veil.className = 'df-splash-veil'
-        layer.append(grid, ring, mark, veil)
-        document.body.appendChild(layer)
-        const remove = () => {
-          if (layer.isConnected) layer.remove()
-        }
-        layer.addEventListener('animationend', event => {
-          if (event.animationName === 'df-splash-out') remove()
-        })
-        setTimeout(remove, 3200)
-      } catch (error) {
-        console.warn('[dsh-fish-ui] splash failed', error)
-      }
-    }
-
     /* fish runtime:start */
     // Profile settings and host theme token layers.
     const DF_SETTINGS_KEY = 'dsh-fish-ui:settings'
@@ -2240,7 +2086,7 @@ body {
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
       'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
       'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
-      'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons',
+      'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons', 'launchIntro',
     ] as const
     type FishSettings = Readonly<Record<typeof DF_FLAGS[number], boolean> & GlassValues & { scene: SceneId; sceneMotion: string; iconStyle: string; accentColor: string }>
     const DF_DEFAULT_SETTINGS = Object.freeze({
@@ -2502,6 +2348,72 @@ body {
     }
     const dfSetSetting = <K extends keyof FishSettings>(key: K, value: FishSettings[K]) => dfWrite?.({ [key]: value })
 
+    const staticLaunchMedia = window.matchMedia('(prefers-reduced-motion: reduce), (forced-colors: active)')
+    const onMotionPreference = (listener: () => void) => {
+      staticLaunchMedia.addEventListener('change', listener)
+      return () => staticLaunchMedia.removeEventListener('change', listener)
+    }
+    const readStaticLaunch = () => staticLaunchMedia.matches
+    let visitLaunchFrame: ((frame: HTMLElement, welcome: boolean, ready: boolean) => void) | undefined
+    let emptyWorkspaceReady: (() => boolean) | undefined
+    let stopPreview: (() => void) | undefined
+    function showIntro() {
+      const scene = SCENES[dfSettings.scene]
+      return playFishLaunch({
+        painting: dfSettings.aurora ? paintings[dfSettings.scene] : undefined,
+        sceneName: dfSettings.aurora ? (dfUsesChinese() ? scene.zh : scene.en) : undefined,
+        accent: dfSettings.accentColor, still: dfSettings.sceneMotion === 'still',
+      })
+    }
+
+    function attachLaunch() {
+      const events = new AbortController()
+      let settle: number | undefined
+      let expiry: number | undefined
+      let stopAutomatic: (() => void) | undefined
+      const stopWaiting = () => {
+        events.abort()
+        window.clearTimeout(expiry)
+        window.clearTimeout(settle)
+      }
+      const skip = () => {
+        stopWaiting()
+        stopAutomatic?.()
+        visitLaunchFrame = undefined
+      }
+      if (!window.__dfSplashPlayed && !document.hidden && !navigator.userActivation?.hasBeenActive) {
+        // The host can briefly mount an empty frame before restoring history.
+        // Listen during startup only. Opening a new chat later must not play an intro.
+        visitLaunchFrame = (frame, welcome, ready) => {
+          if (!welcome) return skip()
+          if (!ready || events.signal.aborted || settle !== undefined) return
+          const content = frame.closest<HTMLElement>('[data-conversation-content]')
+          const whenRestored = () => {
+            if (!frame.isConnected || frame.dataset.dfWelcome !== 'true') return skip()
+            // The native frame reports hero=true while history is being restored,
+            // before it even has a session ID. Wait for the actual selected pane.
+            if (!content?.dataset.conversationSession && !emptyWorkspaceReady?.()) {
+              settle = window.setTimeout(whenRestored, 80)
+              return
+            }
+            stopWaiting()
+            if (dfSettings.launchIntro && dfSnapshot.status === 'ready'
+              && !document.querySelector('.dwe-frame[data-df-welcome="false"]')) {
+              stopAutomatic = showIntro()
+            }
+          }
+          settle = window.setTimeout(whenRestored, 80)
+        }
+        const options = { capture: true, passive: true, signal: events.signal }
+        for (const event of ['pointerdown', 'keydown', 'wheel', 'beforeinput', 'visibilitychange']) {
+          document.addEventListener(event, skip, options)
+        }
+        expiry = window.setTimeout(skip, 4000)
+      }
+      window.__dfSplashPlayed = true
+      return () => { skip(); stopPreview?.(); stopPreview = undefined }
+    }
+
     class DfBoundary extends React.Component<{ children?: React.ReactNode; fallback?: React.ReactNode }> {
       state = { failed: false }
       static getDerivedStateFromError() { return { failed: true } }
@@ -2607,6 +2519,7 @@ body {
       cursor: ['指针物理', '跟随指针的柔光、输入框微倾斜'],
       textMotion: ['思考与文字动效', '回复浮入、思考块微光、流式文字呼吸感'],
       hostIcons: ['导航与操作图标', '新会话、搜索、文件夹、复制和发送等按钮使用所选图标风格'],
+      launchIntro: ['开场动画', '启动到欢迎页时播放，可点按或键入跳过'],
     })
     Object.assign(DF_COPY.en.items, {
       catppuccin: ['Catppuccin palette', 'Latte / Mocha backgrounds, text, borders and accents'],
@@ -2614,6 +2527,7 @@ body {
       cursor: ['Pointer physics', 'A cursor-following glow and a subtle composer tilt'],
       textMotion: ['Thinking & text motion', 'Replies rise in, reasoning shimmers, streaming text breathes'],
       hostIcons: ['Navigation & action icons', 'Use the chosen icon style for new chats, search, folders, copy, send and related controls'],
+      launchIntro: ['Launch animation', 'Play on the welcome page at startup. Click or type to skip.'],
     })
     /** Switch drawn as SVG so the capsule ends and the knob are exact shapes. */
     function DfSwitchSvg({ value }: { value: boolean }) {
@@ -3112,6 +3026,8 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       const copy = dfUsesChinese() ? DF_COPY.zh : DF_COPY.en
       const settings = useDfSettings()
       const state = settings.values
+      const staticDisplay = React.useSyncExternalStore(onMotionPreference, readStaticLaunch, readStaticLaunch)
+      const staticIntro = staticDisplay || state.sceneMotion === 'still'
       const [tab, setTab] = React.useState('scenes')
       const glassEditor = React.useMemo(createGlassEditor, [])
       const scene = SCENES[state.scene]
@@ -3193,6 +3109,11 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
             h(FishSegments, { name: 'sceneMotion', label: zh ? '背景动效' : 'Scene motion', icon: 'wave',
               value: state.sceneMotion, disabled: disabled || !state.aurora,
               options: [['still', zh ? '静止' : 'Still', 'still'], ['calm', zh ? '舒缓' : 'Calm', 'wave'], ['flow', zh ? '流动' : 'Flow', 'fishMotion']] }),
+            h('div', { className: 'df-launch-options' }, item('launchIntro'),
+              h('button', { type: 'button', className: 'df-replay', 'data-df-preview-launch': '', disabled: staticIntro,
+                title: staticIntro ? (zh ? '当前动效或辅助显示设置使用静态界面' : 'Your motion or accessibility settings use a static view') : undefined,
+                onClick: () => { stopPreview?.(); stopPreview = showIntro() } },
+                h(FishIcon, { name: 'launchIntro', size: 14 }), zh ? '预览开场' : 'Preview intro')),
             h(FishSegments, { name: 'iconStyle', label: zh ? '图标风格' : 'Icon style', icon: 'duotone',
               value: state.iconStyle, disabled, options: [['line', zh ? '线描' : 'Outline', 'line'], ['duotone', zh ? '双色' : 'Duotone', 'duotone']] })))
           : h('div', { className: 'fish-details' }, details),
@@ -3447,7 +3368,6 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
     return {
       inject: ['slots'],
       apply(ctx) {
-        dfPlaySplash()
         ctx.effect(() => {
           dfMounted = true
           const visible = () => document.documentElement.toggleAttribute('data-fish-paused', document.hidden)
@@ -3489,11 +3409,12 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
           style.textContent = [
             FISH_FX_CSS, FISH_STUDIO_CSS, DF_SCENE_ART_CSS, productIconCss(),
-            shellGlassCss, commandGlassCss, glassControlsCss,
+            shellGlassCss, commandGlassCss, glassControlsCss, studioFinishCss, DF_LAUNCH_CSS,
           ].join('\n')
           document.head.append(style)
           return () => style.remove()
         }, 'dsh-fish-ui: fx styles')
+        ctx.effect(attachLaunch, 'dsh-fish-ui: welcome animation')
         ctx.effect(attachPointerPhysics, 'dsh-fish-ui: pointer physics')
         ctx.inject(['theme'], scope => {
           scope.effect(() => {
@@ -3508,37 +3429,16 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         })
         installModelStudio(ctx, React)
         dfInstallReplyMotion(React, ctx, dfPlaySceneArrival)
-        // The optional launch shortcut yields as soon as the user starts working in a session.
-        ctx.inject(['uiWorkspace'], scope => {
+        ctx.inject(['workspaces', 'sessions'], scope => {
           scope.effect(() => {
-            let timer: number
-            const cancel = () => {
-              window.clearTimeout(timer)
-              document.removeEventListener('pointerdown', cancel, true)
-              document.removeEventListener('keydown', cancel, true)
-              document.removeEventListener('input', cancel, true)
+            emptyWorkspaceReady = () => {
+              const ws = scope.workspaces.list.getSnapshot()
+              const sessions = scope.sessions.list.getSnapshot()
+              return ws.phase === 'ready' && sessions.phase === 'ready'
+                && ws.items.length === 0 && Object.keys(sessions.byId).length === 0
             }
-            const open = () => {
-              cancel()
-              try { scope.uiWorkspace.startSession() }
-              catch (error) { console.warn('[dsh-fish-ui] new session failed', error) }
-            }
-            const onLaunch = (remaining: number) => {
-              if (document.querySelector('[data-chat-running]')) return cancel()
-              if (typeof scope.uiWorkspace.startSession === 'function') return open()
-              if (remaining > 0) timer = window.setTimeout(() => onLaunch(remaining - 1), 400)
-              else cancel()
-            }
-            document.addEventListener('pointerdown', cancel, true)
-            document.addEventListener('keydown', cancel, true)
-            document.addEventListener('input', cancel, true)
-            window.__dfNewSession = open
-            timer = window.setTimeout(() => onLaunch(30), 2500)
-            return () => {
-              cancel()
-              if (window.__dfNewSession === open) delete window.__dfNewSession
-            }
-          }, 'dsh-fish-ui: new session on launch')
+            return () => { emptyWorkspaceReady = undefined }
+          }, 'dsh-fish-ui: initial workspace')
         })
         ctx.inject(['configForms'], dfConnectSettings)
         const add = (name, options, Component) => ctx.slots.inject(name,

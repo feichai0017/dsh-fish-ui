@@ -5,7 +5,7 @@ const flags = [
   'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
   'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
   'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
-  'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons',
+  'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons', 'launchIntro',
 ] as const
 
 export const Config = Schema.object({

@@ -14,7 +14,7 @@ interface FishClientContext {
   effect(setup: () => void | (() => void), label: string): void
   inject(names: string[], setup: (scope: FishClientContext) => void): void
   theme: FishThemeService
-  uiWorkspace: { startSession(): void }
+  workspaces: { list: { getSnapshot(): { phase: string; items: readonly unknown[] } } }
   configForms: {
     get(id: string): {
       getSnapshot(): FishFormSnapshot
@@ -36,6 +36,5 @@ interface Window {
     load(definition: { id: string; factory(require: FishClientRequire): { inject: string[]; apply(ctx: FishClientContext): void } }): void
   }
   __dfSplashPlayed?: boolean
-  __dfNewSession?: () => void
   __dfCaretProbe?: () => { ok: boolean; active?: string | null; x?: number; y?: number; height?: number }
 }

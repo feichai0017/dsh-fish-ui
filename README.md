@@ -6,6 +6,12 @@
 
 Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fish-ui** to change the appearance.
 
+## Launch and welcome
+
+When Harness starts on a blank conversation, a 1.66-second opening shows the selected painting inside a circular window. The etched rim takes your accent color. A click, keystroke or scroll dismisses it immediately. Restoring an existing conversation takes you straight back to the transcript.
+
+Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it. Still mode, reduced motion and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
+
 ## Window and menus
 
 The sidebar, top bar, tools pane and composer pick up a tint from the current painting. The accent you choose marks focus and selection. The `/` command and `@` reference menus use a denser surface to keep the conversation behind them out of the way. Arrow keys move the accent marker to the current option.
@@ -16,7 +22,7 @@ The interface starts at 6% transparency and 18 px blur. The command menu has its
 
 ## Model and reasoning picker
 
-Open the composer's model button. Select a model card, then choose one of the reasoning levels offered for that model. The ridge changes shape with the model and rises with the effort setting. The compact trigger follows the session through reasoning and text output. Use the original model row to search the full provider catalog. Harness applies selections to the current session and reports pending or rejected changes.
+Open the composer's model button. Select a model card, then choose one of the reasoning levels offered for that model. The shaded ridge takes its light from the scene, changes shape with the model and rises with reasoning effort. It moves while the session is thinking or streaming and rests when the session is idle. Use the original model row to search the full provider catalog. Harness applies selections to the current session and reports pending or rejected changes.
 
 ## Scenes
 
