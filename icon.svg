@@ -1,11 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="14" fill="#1e1e2e"/>
-  <g fill="#cba6f7">
-    <path d="M12 22 L22 32 L12 42 Z"/>
-    <ellipse cx="37" cy="32" rx="16" ry="10"/>
-  </g>
-  <circle cx="44" cy="29" r="2.4" fill="#11111b"/>
-  <g fill="#89b4fa" opacity=".85">
-    <circle cx="52" cy="18" r="1.6"/><circle cx="57" cy="13" r="1.2"/><circle cx="56" cy="23" r="1"/>
-  </g>
+  <defs>
+    <linearGradient id="ocean" x1=".1" y1="0" x2=".85" y2="1">
+      <stop stop-color="#718DFF"/><stop offset=".48" stop-color="#4D6BFE"/><stop offset="1" stop-color="#243EAA"/>
+    </linearGradient>
+    <linearGradient id="pearl" x1=".85" y1=".2" x2=".2" y2=".9">
+      <stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#D3EDFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#ocean)"/>
+  <rect x=".5" y=".5" width="63" height="63" rx="15.5" fill="none" stroke="#BFD4FF" stroke-opacity=".42"/>
+  <path d="M27 28Q28 18 40 12L38 23ZM31 39Q29 45 32 50Q40 43 40 33Z" fill="#9DD7FF"/>
+  <path d="M18 36C25 25 39 16 54 17C52 32 39 43 21 43C16 47 11 49 6 49C9 44 12 40 15 38C11 34 9 29 10 24C15 26 18 31 18 36Z" fill="url(#pearl)"/>
+  <path d="M23 39C31 37 36 33 40 29" fill="none" stroke="#6EA4F9" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="46.3" cy="23.4" r="1.8" fill="#243EAA"/>
+  <path d="M11 53Q18 52 24 48" fill="none" stroke="#9DD7FF" stroke-width="1.7" stroke-linecap="round"/>
 </svg>

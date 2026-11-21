@@ -22,6 +22,279 @@ window.__ModuleLoader__.load({
     const React = require('react')
     const h = React.createElement
 
+    // Scene artwork and interface ink are independent profile preferences.
+    type ColorPair = [string, string]
+    type PlateColors = [string, string, string, string]
+    interface FishScene {
+      zh: string
+      en: string
+      caption: ColorPair
+      colors: PlateColors
+      icon: keyof typeof FISH_ICONS
+    }
+
+    const SCENES = {
+      atlas: {
+        en: 'Tidal Atlas', zh: '潮汐图谱', caption: ['Drifting depth contours', '等深线随海流缓缓漂移'],
+        colors: ['#152665', '#2E4DA7', '#9CBFFF', '#D9E5FF'],
+        icon: 'contour',
+      },
+      aurora: {
+        en: 'Polar Silk', zh: '极光帷幕', caption: ['Ribbons of light over a polar ridge', '极光掠过远山的轮廓'],
+        colors: ['#171b48', '#384676', '#91ead0', '#d4b1fb'],
+        icon: 'aurora',
+      },
+      orbit: {
+        en: 'Lunar Orbit', zh: '月相轨道', caption: ['Satellites trace an orbital chart', '卫星沿星图上的轨道运行'],
+        colors: ['#191b38', '#484069', '#d0baff', '#f7d8a3'],
+        icon: 'orbit',
+      },
+      dunes: {
+        en: 'Amber Dunes', zh: '琥珀沙丘', caption: ['Wind moves across the sand ridges', '风吹动落日下的沙脊'],
+        colors: ['#65383f', '#c87852', '#ffc985', '#fff1bd'],
+        icon: 'dunes',
+      },
+      rain: {
+        en: 'Neon Rain', zh: '霓虹夜雨', caption: ['Rain streaks past a lit skyline', '斜雨掠过楼顶的霓虹灯'],
+        colors: ['#111936', '#374274', '#80d6ec', '#f2a1d8'],
+        icon: 'rain',
+      },
+      lotus: {
+        en: 'Celadon Pond', zh: '青瓷莲池', caption: ['Ripples open between lotus leaves', '水纹从荷叶间一圈圈散开'],
+        colors: ['#123a3b', '#447766', '#b2dbc0', '#f7cfbf'],
+        icon: 'lotus',
+      },
+    } satisfies Record<string, FishScene>
+    const BRAND_BLUE = '#4D6BFE'
+    const ACCENT_SWATCHES = [
+      [BRAND_BLUE, 'DeepSeek 蓝', 'DeepSeek blue'],
+      ['#7855CA', '鸢尾紫', 'Iris'],
+      ['#157B77', '孔雀青', 'Teal'],
+      ['#AB6132', '琥珀棕', 'Amber'],
+      ['#BA4774', '玫瑰红', 'Rose'],
+    ]
+    type SceneId = keyof typeof SCENES
+    const STUDIO_CHOICES = {
+      scene: Object.keys(SCENES), sceneMotion: ['still', 'calm', 'flow'], iconStyle: ['line', 'duotone'],
+    }
+
+    // The same vector originals are used on the conversation, the selector and the cover.
+    // Only the conversation animates. No timers or network requests are needed for a plate.
+    const path = (d: string, props?: React.SVGProps<SVGPathElement>) => h('path', { d, ...props })
+    const circle = (cx: number, cy: number, r: number, props?: React.SVGProps<SVGCircleElement>) => h('circle', { cx, cy, r, ...props })
+    const ellipse = (cx: number, cy: number, rx: number, ry: number, props?: React.SVGProps<SVGEllipseElement>) => h('ellipse', { cx, cy, rx, ry, ...props })
+    const marks = (count: number, draw: (index: number) => React.ReactElement) => Array.from({ length: count }, (_, n) => draw(n))
+    function chartStars(color: string, count: number) {
+      return h('g', { fill: color }, marks(count, n =>
+        circle((n * 97 + 19) % 402, (n * 47 + 13) % 170, n % 6 === 0 ? 1.05 : .52,
+          { key: n, opacity: .35 + (n % 4) * .15 })))
+    }
+    function drawAtlas([, , mint, sand]: PlateColors, url: (name: string) => string) {
+      const contour = 'M-77 -14C-78 -37 -50 -57 -28 -52S7 -61 31 -49S69 -35 71 -13S99 16 72 33S37 61 13 49S-17 60 -41 45S-83 19 -77 -14Z'
+      const bank = (x: number, y: number, scale: number, rotate: number, count: number, hue: string) => h('g', {
+        transform: 'translate(' + x + ' ' + y + ') rotate(' + rotate + ') scale(' + scale + ')',
+      }, marks(count, n => path(contour, {
+        key: n, transform: 'scale(' + (.19 + n * .12) + ')',
+        fill: n === 5 ? url('wash') : 'none', stroke: hue,
+        strokeWidth: n % 4 === 0 ? 1.15 : .65, opacity: n % 4 === 0 ? .8 : .53,
+      })))
+      return h('g', null,
+        h('rect', { width: 400, height: 180, fill: url('grid'), opacity: .42 }),
+        h('g', { className: 'fish-current' }, bank(336, 17, 1.23, -22, 18, mint), bank(41, 174, .94, 14, 16, mint)),
+        path('M-12 86Q63 32 136 67T268 104T416 64', { fill: 'none', stroke: sand, strokeDasharray: '2 4', opacity: .78 }),
+        h('g', { transform: 'translate(274 94)', stroke: sand, fill: 'none', strokeWidth: .75 },
+          circle(0, 0, 10), circle(0, 0, 2.4), path('M-16 0H-6M6 0H16M0 -16V-6M0 6V16')),
+        h('g', { fill: sand }, circle(92, 56, 1.8), circle(182, 88, 1.4)))
+    }
+    function drawAurora([ink, mid, mint, lilac]: PlateColors, url: (name: string) => string) {
+      return h('g', null, chartStars('#e7faf6', 54),
+        h('g', { className: 'fish-curtain' },
+          path('M-45 109C50 -42 104 150 208 55S355 -33 453 16L443 75C310 22 286 87 191 110S43 37 -38 146Z', { fill: url('silk') }),
+          h('g', { fill: 'none', stroke: mint }, marks(21, n => path(
+            'M-25 ' + (106 + n * .8) + 'C58 ' + (-32 + n * 1.5) + ' 109 ' + (145 + n * 1.2) + ' 200 ' + (67 + n * .72) + 'S342 ' + (-38 + n * 1.5) + ' 428 ' + (14 + n * .85),
+            { key: n, strokeWidth: n % 5 === 0 ? .85 : .4, opacity: .22 + n * .016 }))),
+          path('M-15 66C83 12 122 105 203 56S340 -8 427 9', { fill: 'none', stroke: lilac, opacity: .6, strokeWidth: 1 })),
+        path('M0 155L49 131 74 141 122 107 145 124 175 102 198 119 224 101 276 133 315 107 361 123 400 102V181H0Z', { fill: mid }),
+        path('M0 164L73 143 108 152 157 123 189 140 233 116 278 142 324 127 362 141 400 128V181H0Z', { fill: ink }),
+        path('M0 164L73 143 108 152 157 123 189 140 233 116 278 142 324 127 362 141 400 128', { fill: 'none', stroke: lilac, strokeWidth: .7, opacity: .6 }))
+    }
+    function drawOrbit([ink, mid, lilac, gold]: PlateColors, url: (name: string) => string) {
+      return h('g', null, chartStars('#f0e7ff', 66),
+        h('g', { transform: 'translate(267 77) rotate(-21)', fill: 'none', stroke: lilac },
+          marks(5, n => ellipse(0, 0, 50 + n * 25, 19 + n * 13, {
+            key: n, strokeWidth: n === 2 ? 1.1 : .6, strokeDasharray: n === 3 ? '2 3' : undefined, opacity: .6,
+          })),
+          h('g', { transform: 'scale(1 .40)' },
+            h('g', { className: 'fish-revolve' }, ellipse(75, 0, 3.1, 7.75, { fill: gold, stroke: 'none' })))),
+        circle(267, 77, 43, { fill: url('halo') }), circle(267, 77, 29, { fill: url('planet') }),
+        path('M249 54Q237 87 268 106A29 29 0 0 1 249 54Z', { fill: mid, opacity: .7 }),
+        h('g', { fill: ink, opacity: .2 }, circle(273, 65, 3.2), circle(283, 78, 4.3), circle(265, 88, 2)),
+        path('M20 68L55 53 78 70 110 43 141 49', { fill: 'none', stroke: lilac, strokeWidth: .6 }),
+        h('g', { fill: gold }, circle(20, 68, 1.4), circle(55, 53, 1.8), circle(78, 70, 1.4), circle(110, 43, 2), circle(141, 49, 1.4)),
+        path('M335 134v10m-5 -5h10M162 24v7m-3.5 -3.5h7', { fill: 'none', stroke: gold, strokeWidth: 1 }))
+    }
+    function drawDunes([ink, mid, apricot, ivory]: PlateColors, url: (name: string) => string) {
+      return h('g', null,
+        circle(277, 55, 52, { fill: url('halo') }),
+        circle(277, 55, 28, { fill: url('planet') }),
+        circle(277, 55, 34, { fill: 'none', stroke: ivory, opacity: .5, strokeWidth: .6 }),
+        path('M-14 105Q49 81 99 95T204 91T305 88T415 61V182H-14Z', { fill: apricot, opacity: .64 }),
+        path('M-14 97C37 83 86 122 160 116S326 56 415 88V182H-14Z', { fill: mid }),
+        h('g', { className: 'fish-sand' },
+          path('M-18 142C66 150 145 79 220 98S339 154 421 120V188H-18Z', { fill: ink }),
+          h('g', { fill: 'none', stroke: apricot }, marks(16, n => path(
+            'M-20 ' + (142 + n * 3.2) + 'C68 ' + (150 + n * 2.5) + ' 146 ' + (78 + n * 3.6) + ' 220 ' + (98 + n * 3.3) + 'S339 ' + (154 + n * 3.5) + ' 423 ' + (120 + n * 2.5),
+            { key: n, strokeWidth: n === 0 ? 1.4 : .55, opacity: n === 0 ? .98 : .48 })))),
+        path('M62 59q6 -4 11 0q4 -6 10 -6M101 44q4 -2 7 1q4 -4 8 -4', { fill: 'none', stroke: ivory, opacity: .8, strokeWidth: .9 }))
+    }
+    function drawRain([ink, mid, ice, pink]: PlateColors, url: (name: string) => string) {
+      const roofs = marks(20, n => {
+        const x = n * 22 - 8
+        const y = 55 + (n * 37) % 74
+        return h('g', { key: n },
+          h('rect', { x, y, width: 19, height: 150 - y, fill: n % 3 === 0 ? mid : ink }),
+          path('M' + x + ' ' + y + 'h18', { stroke: n % 3 === 0 ? pink : ice, opacity: .8, strokeWidth: 1 }),
+          h('rect', { x: x + 3, y: y + 5, width: 12, height: 144 - y, fill: url('windows') }))
+      })
+      return h('g', null,
+        circle(287, 62, 45, { fill: url('halo') }),
+        circle(287, 62, 20, { fill: pink, opacity: .85 }),
+        roofs,
+        path('M0 147H400V180H0Z', { fill: ink }),
+        h('g', null, marks(41, n => {
+          const x = (n * 61) % 400
+          return path('M' + x + ' ' + (150 + n % 24) + 'h' + (3 + n % 13), { key: n, stroke: n % 3 ? ice : pink, opacity: .28 + n % 4 * .11, strokeWidth: 1 })
+        })),
+        h('g', { className: 'fish-rainfall', stroke: ice, strokeWidth: .65, opacity: .57 },
+          marks(48, n => {
+            const x = (n * 83) % 452 - 12
+            return path('M' + x + ' ' + ((n * 43) % 226 - 33) + 'l-5 14', { key: n })
+          })))
+    }
+    function drawLotus([ink, mid, jade, blush]: PlateColors, url: (name: string) => string) {
+      const pad = (x: number, y: number, size: number, angle: number) => h('g', { transform: 'translate(' + x + ' ' + y + ') rotate(' + angle + ') scale(' + size + ')' },
+        path('M0 0L-28 17C-47 7 -43 -17 -21 -25C5 -40 45 -22 44 0C42 22 6 36 -22 23Z', { fill: mid, stroke: jade, strokeWidth: 1.15 }),
+        path('M0 0Q-10 -9 -22 -18M0 0Q3 -16 10 -25M0 0Q21 -10 34 -10M0 0Q21 5 30 14M0 0Q3 13 -9 23', { fill: 'none', stroke: jade, opacity: .55, strokeWidth: .8 }))
+      return h('g', null,
+        h('g', { transform: 'translate(249 93) scale(1 .48)', fill: 'none', stroke: jade },
+          h('g', { className: 'fish-pond-ring' }, marks(6, n => circle(0, 0, 22 + n * 17, { key: n, strokeWidth: n % 2 ? .65 : 1.15, opacity: .72 - n * .075 })))),
+        pad(370, 33, 1.12, -16), pad(332, 2, .72, 12), pad(32, 148, 1.08, 8), pad(84, 155, .53, -21),
+        h('g', { transform: 'translate(247 90)' },
+          marks(9, n => path('M0 0C-8 -5 -10 -14 -3 -23C4 -18 9 -7 0 0Z', { key: n, transform: 'rotate(' + (n * 40) + ')', fill: n % 2 ? blush : jade, stroke: ink, strokeWidth: .75 })),
+          circle(0, 0, 3.6, { fill: '#f8da91' })),
+        h('g', { fill: jade, opacity: .65 }, circle(169, 37, 1.15), circle(178, 39, .7), circle(129, 111, 1)))
+    }
+    const DRAW_SCENE = { atlas: drawAtlas, aurora: drawAurora, orbit: drawOrbit, dunes: drawDunes, rain: drawRain, lotus: drawLotus }
+    // Each pair is an outline and, where appropriate, a second ink underneath it.
+    const FISH_ICONS = {
+      fish: ['M2 8.5 7 11c3-6 10-6.5 14 1-4.5 7.5-11 7-14 1L2 15.5Z M14 7.2c-2 3.1-2 6.5 0 9.6 M17.2 11.2h.1', 'M7 12c3-6 10-6 14 0-4 7-11 7-14 0Z'],
+      contour: ['M2 14c0-5 3-6 6-6s3-5 7-5 7 4 7 8-5 4-7 7-6 4-9 2-4-3-4-6Z M6 14c0-3 4-3 6-6s6-1 6 2-3 3-5 6-7 2-7-2Z M10 14l4-3', 'M2 14c0-5 3-6 6-6s3-5 7-5 7 4 7 8-5 4-7 7-6 4-9 2-4-3-4-6Z'],
+      aurora: ['M2 16c5-13 8 2 14-9l4-4 M2 20c6-14 9 0 15-10l5-6 M7 5l.6 1.8L9.5 7l-1.9.6L7 9.5l-.6-1.9L4.5 7l1.9-.2Z', 'M2 16c5-13 8 2 14-9l4-4-3 7c-6 10-9-4-15 10Z'],
+      orbit: ['M8 8.5a5 5 0 1 1-.5 6.3 M19.5 7c4-1 2.5 3-4 7S1 20 2.5 16c.5-1.3 2.3-3.2 4.5-5 M18 3v2m-1-1h2', 'M12 7a5 5 0 1 1 0 10 5 5 0 1 1 0-10Z'],
+      dunes: ['M1.5 18c5 2 8-8 14-5s6 5 7 4 M2 21h20 M3 13l4-3 4 2 M14 9a3 3 0 1 1 5 .2', 'M2 18c5 2 8-8 14-5s6 5 6 4v4H2Z'],
+      rain: ['M4 15V9h5v6m0-6V6h6v9m0-4h5v4 M2 16h20 M6 19l-1 2m7-2-1 2m7-2-1 2 M17 4l-1 2m5-3-1 2', 'M4 9h5V6h6v5h5v5H4Z'],
+      lotus: ['M12 18c-4-3-5-7 0-13 5 6 4 10 0 13Z M10 17c-4 0-7-3-8-8 4 .3 7 2 8 4m4 4c4 0 7-3 8-8-4 .3-7 2-8 4 M4 20c4 1 12 1 16 0', 'M12 18c-4-3-5-7 0-13 5 6 4 10 0 13Z'],
+      gallery: ['M3 4h7v7H3Zm11 0h7v7h-7ZM3 15h7v6H3Zm11 0h7v6h-7Z', 'M3 4h7v7H3Zm11 11h7v6h-7Z'],
+      sliders: ['M3 6h4m5 0h9M3 12h10m5 0h3M3 18h3m5 0h10 M7 4v4h4V4Zm7 6v4h4v-4Zm-8 6v4h4v-4Z', 'M7 4h4v4H7Zm7 6h4v4h-4Zm-8 6h4v4H6Z'],
+      reading: ['M3 5c4-1 6-.5 9 2 3-2.5 5-3 9-2v13c-4-1-6-.5-9 2-3-2.5-5-3-9-2ZM12 7v13', 'M3 5c4-1 6-.5 9 2v13c-3-2.5-5-3-9-2Z'],
+      code: ['m7 7-5 5 5 5m10-10 5 5-5 5m-4-13-3 16'],
+      hero: ['M4 3h16v18H4ZM7 16l4-5 3 3 2-2 2 4M8 7h.1', 'M5 17l6-6 3 3 2-2 3 5Z'],
+      field: ['M3 6h18M3 12h18M3 18h18M6 3v18M12 3v18M18 3v18'],
+      wave: ['M2 8q3-4 7 0t7 0q3-3 6-1 M2 13q3-4 7 0t7 0q3-3 6-1 M2 18q3-4 7 0t7 0q3-3 6-1'],
+      ripple: ['M6 10c-5 2-5 6 0 8s13 1 15-2-2-5-4-6 M8 12c-3 2 0 4 4 4s7-2 4-4 M12 3c-3 4-3.5 6 0 7 3.5-1 3-3 0-7Z', 'M12 3c-3 4-3.5 6 0 7 3.5-1 3-3 0-7Z'],
+      thinkingSphere: ['M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18Zm0 0c-6 5-6 13 0 18 6-5 6-13 0-18ZM3 12h18'],
+      thinkingLabel: ['M4 4h16v13h-8l-5 4v-4H4ZM7 9h10M7 12h7', 'M4 4h16v13h-8l-5 4v-4H4Z'],
+      glass: ['m3 8 9-5 9 5-9 5Zm0 4 9 5 9-5M3 16l9 5 9-5', 'm3 8 9-5 9 5-9 5Z'],
+      effortBadge: ['m13 2-8 12h6l-1 8 9-13h-7Z', 'm13 2-8 12h6l-1 8 9-13h-7Z'],
+      sidebarDots: ['M3 4h18v16H3ZM10 4v16M6.3 8h.3m-.3 4h.3m-.3 4h.3', 'M3 4h7v16H3Z'],
+      sidebarRail: ['M3 4h18v16H3ZM8 4v16M12 9h6m-6 5h4', 'M3 4h5v16H3Z'],
+      bold: ['M6 4h7a4 4 0 0 1 0 8H7m0-8v16h7a4 4 0 0 0 0-8H7'],
+      focusRing: ['M8 3H3v5m13-5h5v5m0 8v5h-5M3 16v5h5 M8 8h8v8H8Z', 'M8 8h8v8H8Z'],
+      diff: ['M5 3v13c0 4 4 4 7 4h4m-2-3 3 3-3 3 M12 6h9m-4.5-4.5v9'],
+      fishFont: ['m2 18 5-14 5 14M4 13h6m3 2c2-3 7-1 7-3s-2-4-6-2m6 2v6c-3 2-8 1-7-3'],
+      fishGlow: ['M12 2l2.7 7.3L22 12l-7.3 2.7L12 22l-2.7-7.3L2 12l7.3-2.7Z', 'M12 2l2.7 7.3L22 12l-7.3 2.7L12 22l-2.7-7.3L2 12l7.3-2.7Z'],
+      fishMotion: ['M2 8h7M2 12h4m-3 4h5m1-4 6-7 7 7-7 7Z', 'm9 12 6-7 7 7-7 7Z'],
+      fishCode: ['M3 4h18v16H3Zm0 4h18m-14 4 3 2-3 2m5 0h4', 'M3 4h18v4H3Z'],
+      catppuccin: ['M12 3a9 9 0 1 0 0 18h1c2 0 2-2 1-3s-1-3 1-3h3c5 0 3-12-6-12Z M7 10h.1m3-3h.1m4 0h.1m3 3h.1', 'M12 3a9 9 0 1 0 0 18h1c2 0 2-2 1-3s-1-3 1-3h3c5 0 3-12-6-12Z'],
+      cursor: ['m4 3 15 9-7 1-3 7Z', 'm4 3 15 9-7 1-3 7Z'],
+      textMotion: ['M3 6h12M3 11h8m-8 5h5m7-6 6 4-6 4Z', 'm15 10 6 4-6 4Z'],
+      still: ['M7 5v14M17 5v14'],
+      line: ['m3 18 4-1L20 5l-2-2L5 15ZM3 21h18'],
+      duotone: ['M3 5h11v12H3Zm7 4h11v12H10Z', 'M10 9h11v12H10Z'],
+      check: ['m5 12 4.5 4.5L19 7'],
+      close: ['m6 6 12 12M18 6 6 18'],
+      reset: ['M4 10a8 8 0 1 1 1 7M4 4v6h6'],
+      newChat: ['M13 4H7a4 4 0 0 0-4 4v7a4 4 0 0 0 4 4h1v3l5-3h3a4 4 0 0 0 4-4v-3M18 2v7m-3.5-3.5h7', 'M4 8a3 3 0 0 1 3-3h5v6h7v4c0 2-1 3-3 3h-3l-5 3v-3H7c-2 0-3-1-3-3Z'],
+      search: ['M10.5 3.5a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16 16l5 5M7 10a3.5 3.5 0 0 1 3.5-3.5', 'M10.5 3.5a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z'],
+      attach: ['m8 14 7.7-7.7a2.1 2.1 0 0 1 3 3l-9 9a4.2 4.2 0 0 1-6-6l9.6-9.6a2 2 0 0 1 .9-.6 M7.5 14.5l6.7-6.7', 'm7 17 10-10 1.8 1.5L9 18Z'],
+      copy: ['M8 7V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-2 M5 7h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z', 'M5 7h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z'],
+      send: ['M12 20V4m-7 7 7-7 7 7', 'M5 11l7-7 7 7-7-2Z'],
+      plane: ['M2 11 22 3l-6 18-5-6-4 4v-6Zm5 2 10-6-6 8', 'm7 13 10-6-6 8 5 6 6-18Z'],
+      folder: ['M3 6a2 2 0 0 1 2-2h5l3 3h6a2 2 0 0 1 2 2v1M3 6v13h15l4-9H8l-3 6', 'M8 10h14l-4 9H4Z'],
+      folderClosed: ['M3 7a2 2 0 0 1 2-2h5l3 3h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2ZM3 10h18', 'M3 10h18v8c0 1-1 2-2 2H5c-1 0-2-1-2-2Z'],
+      mic: ['M9 6a3 3 0 1 1 6 0v6a3 3 0 0 1-6 0Zm-4 6a7 7 0 0 0 14 0m-7 7v3m-4 0h8', 'M9 6a3 3 0 1 1 6 0v6a3 3 0 0 1-6 0Z'],
+    }
+    const PRODUCT_ICONS = {
+      'new-chat-outline': 'newChat', 'search-outline': 'search', 'settings-outline': 'sliders',
+      'panel-left-outline': 'sidebarRail', 'copy-outline': 'copy', 'code-outline': 'fishCode',
+      'paperclip-outline': 'attach', 'paper-plane-outline': 'plane', 'send-outline': 'send',
+      'folder-open-outline': 'folder', 'folder-open': 'folder', 'folder-close': 'folderClosed',
+      'microphone-outline': 'mic', 'sliders-two-outline': 'sliders',
+    }
+    // Mask the existing sized SVG. The host keeps its button, title, events and disabled state.
+    function productIconCss() {
+      const ids = (name: string) => ':is([data-icon="dsw-icon-' + name + '-regular"],[data-icon="dsw-icon-' + name + '-medium"])'
+      const mask = (outline: string, tone?: string) => {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+          + (tone ? '<path d="' + tone + '" opacity=".43"/>' : '')
+          + '<path d="' + outline + '" fill="none" stroke="black" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")'
+      }
+      const rules = Object.entries(PRODUCT_ICONS).map(([name, icon]) => {
+        const [outline, tone] = FISH_ICONS[icon]
+        return 'svg' + ids(name) + '{--fish-outline:' + mask(outline) + ';--fish-duotone:' + mask(outline, tone) + '}'
+      })
+      const target = ' svg:is(' + Object.keys(PRODUCT_ICONS).map(ids).join(',') + ')'
+      const root = 'html:not(.df-off-hosticons)'
+      return '@supports (mask-image:linear-gradient(white,black)){' + rules.join('')
+        + root + '[data-fish-icons="line"]' + target + '{background:currentColor;mask:var(--fish-outline) center/contain no-repeat}'
+        + root + '[data-fish-icons="duotone"]' + target + '{background:linear-gradient(128deg,currentColor 42%,color-mix(in srgb,currentColor 55%,var(--df-accent)));mask:var(--fish-duotone) center/contain no-repeat}'
+        + root + '[data-fish-icons]' + target + '>use{visibility:hidden}}'
+    }
+    function FishBrand() {
+      return h('svg', { viewBox: '0 0 64 64', className: 'fish-logo', 'aria-hidden': true, focusable: false },
+        path('M27 28Q28 18 40 12L38 23ZM31 39Q29 45 32 50Q40 43 40 33Z', { fill: '#9DD7FF' }),
+        path('M18 36C25 25 39 16 54 17C52 32 39 43 21 43C16 47 11 49 6 49C9 44 12 40 15 38C11 34 9 29 10 24C15 26 18 31 18 36Z', { fill: '#F5FBFF' }),
+        path('M23 39C31 37 36 33 40 29M11 53Q18 52 24 48', { fill: 'none', stroke: '#8DC0FF', strokeWidth: 2, strokeLinecap: 'round' }),
+        circle(46.3, 23.4, 2.1, { fill: '#243EAA' }))
+    }
+    function FishIcon({ name, size = 18 }: { name: keyof typeof FISH_ICONS; size?: number }) {
+      const [outline, tone] = FISH_ICONS[name]
+      return h('svg', { className: 'fish-icon', width: size, height: size, viewBox: '0 0 24 24', fill: 'none', 'aria-hidden': true, focusable: false },
+        tone && path(tone, { className: 'fish-icon-tone' }),
+        path(outline, { stroke: 'currentColor', strokeWidth: 1.65, strokeLinecap: 'round', strokeLinejoin: 'round' }))
+    }
+    const FishPlate = React.memo(function FishPlate({ scene, className, align = 'xMidYMid slice' }: { scene: keyof typeof SCENES; className?: string; align?: string }) {
+      const id = 'fish-plate-' + React.useId().replace(/[^a-zA-Z0-9_-]/g, '')
+      const ref = (name: string) => 'url(#' + id + '-' + name + ')'
+      const colors = SCENES[scene].colors
+      const [ink, mid, accent, glint] = colors
+      const stop = (offset: number, stopColor: string, stopOpacity = 1) => h('stop', { offset, stopColor, stopOpacity })
+      return h('svg', { className, viewBox: '0 0 400 180', preserveAspectRatio: align, 'aria-hidden': true, focusable: false },
+        h('defs', null,
+          h('linearGradient', { id: id + '-base', x1: '0%', y1: '100%', x2: '82%', y2: '0%' }, stop(0, ink), stop(1, mid)),
+          h('radialGradient', { id: id + '-wash' }, stop(0, accent, .29), stop(1, accent, .02)),
+          h('radialGradient', { id: id + '-halo' }, stop(0, glint, .63), stop(.5, glint, .27), stop(1, glint, 0)),
+          h('linearGradient', { id: id + '-planet', x2: '90%', y2: '70%' }, stop(0, glint), stop(.65, accent), stop(1, mid)),
+          h('linearGradient', { id: id + '-silk', x1: '0%', y1: '90%', x2: '55%', y2: '0%' }, stop(0, accent, .02), stop(.55, accent, .8), stop(1, glint, .08)),
+          h('pattern', { id: id + '-grid', width: 18, height: 18, patternUnits: 'userSpaceOnUse' },
+            path('M18 0H0V18', { fill: 'none', stroke: accent, opacity: .55, strokeWidth: .54 })),
+          h('pattern', { id: id + '-windows', width: 5, height: 7, patternUnits: 'userSpaceOnUse' },
+            h('rect', { x: 1, y: 1, width: 1.3, height: 2.6, fill: glint, opacity: .65 }))),
+        h('rect', { width: 400, height: 180, fill: ref('base') }),
+        DRAW_SCENE[scene](colors, ref))
+    })
+
     /* ------------------------------------------------------------ hero mascot */
 
     /** Dot grid sampled from the mascot artwork: one hex digit per cell. */
@@ -66,14 +339,15 @@ window.__ModuleLoader__.load({
     /** Temporary on-canvas readout used to diagnose layout mismatches. */
     const DEBUG = false
 
+    type HalftoneDot = { u: number; v: number; a: number; phase: number; speed: number }
     /** Dot model of the portrait for the light canvas (ink-weighted). */
-    let dotModel
+    let dotModel: HalftoneDot[] | undefined
 
     /** Dot model of the portrait for the dark canvas (line-art weighted). */
-    let lineModel
+    let lineModel: HalftoneDot[] | undefined
 
     /** Dot model of the wordmark, built once by rasterising live text. */
-    let lockupModel
+    let lockupModel: HalftoneDot[][] | undefined
 
     /**
      * Decode one hex grid into dots: one dot per non-empty cell, weight from the
@@ -82,7 +356,7 @@ window.__ModuleLoader__.load({
      * @param cells - one hex digit per grid cell, row-major.
      * @returns dots in normalised space (`u`/`v` 0..1, `a` weight 0..1).
      */
-    function decodeGrid(cells) {
+    function decodeGrid(cells: string) {
       const dots = []
       for (let index = 0; index < cells.length; index += 1) {
         const weight = Number.parseInt(cells[index], 16)
@@ -224,7 +498,7 @@ window.__ModuleLoader__.load({
      * @param canvas - the frame canvas sized to the conversation area.
      * @returns disposer that cancels the animation and observers.
      */
-    function attachMascot(canvas) {
+    function attachMascot(canvas: HTMLCanvasElement) {
       const context = canvas.getContext('2d')
       if (context === null) return () => {}
       const portraitLight = mascotDots()
@@ -246,7 +520,7 @@ window.__ModuleLoader__.load({
       let composerLeft = 0
       let composerWidth = 0
       let composerTop = 0
-      let composerNode = null
+      let composerNode: Element | null = null
       const composerObserver = new ResizeObserver(() => { readComposer() })
 
       /** Re-read the composer card (it mounts with the hero and resizes with it). */
@@ -291,7 +565,7 @@ window.__ModuleLoader__.load({
       let pointerX = -1e6
       let pointerY = -1e6
       let pointerActive = false
-      const onPointerMove = (event) => {
+      const onPointerMove = (event: PointerEvent) => {
         pointerX = event.clientX - boxLeft
         pointerY = event.clientY - boxTop
         pointerActive = pointerX >= 0 && pointerY >= 0 && pointerX <= boxWidth && pointerY <= boxHeight
@@ -305,7 +579,7 @@ window.__ModuleLoader__.load({
       const onPointerLeave = () => { pointerActive = false }
       /** Moving the pointer over the field band leaves a light ripple behind. */
       const spawnRipple = () => {
-        const cfg = dcSettings
+        const cfg = dfSettings
         if (cfg !== undefined && cfg.ripple === false) return
         const nowMs = performance.now()
         if (nowMs - lastRippleAt < 90) return
@@ -316,10 +590,10 @@ window.__ModuleLoader__.load({
         if (fieldRipples.length > 8) fieldRipples.shift()
       }
       /** Recent pointer samples so the light leaves a short, fading trail. */
-      const trail = []
+      const trail: { x: number; y: number; at: number }[] = []
       /** Click ripples: origin plus start time, oldest first. */
-      const ripples = []
-      const onPointerDown = (event) => {
+      const ripples: { x: number; y: number; at: number }[] = []
+      const onPointerDown = (event: PointerEvent) => {
         const x = event.clientX - boxLeft
         const y = event.clientY - boxTop
         if (x < 0 || y < 0 || x > boxWidth || y > boxHeight) return
@@ -346,20 +620,20 @@ window.__ModuleLoader__.load({
        * Draw one frame: both groups hold still and only their alpha breathes.
        * @param now - frame timestamp.
        */
-      let bgLayer = null
-        let bgGlow = null
+      let bgLayer: HTMLCanvasElement | null = null
+        let bgGlow: HTMLCanvasElement | null = null
         let fieldDots = null
-        const fieldRipples = []
+        const fieldRipples: { x: number; y: number; at: number }[] = []
         let lastRippleAt = 0
         let fieldKeyCache = ''
         let composerFocused = false
         let focusAmount = 0
         let bgKey = ''
 
-        const paint = (now) => {
+        const paint = (now: number) => {
         frame = 0
         if (disposed || document.hidden) return
-        const cfg = dcSettings
+        const cfg = dfSettings
         if (cfg !== undefined && cfg.hero === false) {
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
           context.clearRect(0, 0, width, height)
@@ -526,7 +800,7 @@ window.__ModuleLoader__.load({
           : Math.max(0, Math.min(1, ((now - revealStarted) - 140) / 1100))
         while (ripples.length > 0 && now - ripples[0].at > 760) ripples.shift()
         const trailNow = trail.filter(sample => now - sample.at < 420)
-        const rippleBoost = (x, y) => {
+        const rippleBoost = (x: number, y: number) => {
           let best = 0
           for (const ripple of ripples) {
             const age = (now - ripple.at) / 760
@@ -541,7 +815,7 @@ window.__ModuleLoader__.load({
           }
           return 1 + 1.25 * best
         }
-        const trailBoost = (x, y) => {
+        const trailBoost = (x: number, y: number) => {
           let best = 0
           for (const sample of trailNow) {
             const age = Math.max(0, (now - sample.at) / 420)
@@ -552,7 +826,7 @@ window.__ModuleLoader__.load({
           }
           return 1 + 0.95 * best
         }
-        const place = (target, dot, x, y, radius, kind, line) => {
+        const place = (target: Path2D[], dot: HalftoneDot, x: number, y: number, radius: number, kind: 'portrait' | 'wordmark', line?: number) => {
           // The portrait holds a steady level; only the wordmark breathes.
           const breathe = reduced ? 0.6 : 0.5 + 0.5 * Math.sin(time * dot.speed + dot.phase)
           // Ease the wave so the low and high ends linger instead of sweeping
@@ -694,7 +968,7 @@ window.__ModuleLoader__.load({
           }
         }
 
-        const paintGroup = (paths, boost, color) => {
+        const paintGroup = (paths: Path2D[], boost: number, color: string) => {
           for (let level = 0; level < LEVELS; level += 1) {
             const alpha = Math.min(1, (0.05 + (level / (LEVELS - 1)) * 0.5) * boost).toFixed(3)
             context.fillStyle = `rgba(${color}, ${alpha})`
@@ -755,7 +1029,7 @@ window.__ModuleLoader__.load({
       const onMotion = () => { reduced = motion.matches; refresh() }
       const themeObserver = new MutationObserver(refresh)
       themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
-      const unsubscribeSettings = dcSubscribeSettings(refresh)
+      const unsubscribeSettings = dfSubscribeSettings(refresh)
       motion.addEventListener('change', onMotion)
       document.addEventListener('visibilitychange', refresh)
       measure()
@@ -784,16 +1058,18 @@ window.__ModuleLoader__.load({
      * @param props - the home flag and the wrapped Conversation body.
      * @returns the layout-neutral frame.
      */
-    function HeroFrame({ hero, children }) {
-      const { values } = useDcSettings()
+    function HeroFrame({ hero, children }: { hero: boolean; children?: React.ReactNode }) {
+      const { values } = useDfSettings()
       const show = hero === true && values.hero
-      const canvasRef = React.useRef(null)
+      const canvasRef = React.useRef<HTMLCanvasElement>(null)
       React.useEffect(() => {
         const canvas = canvasRef.current
         if (!show || canvas === null) return undefined
         return attachMascot(canvas)
       }, [show])
       return h('div', { className: 'dwe-frame' },
+        values.aurora && h('div', { className: 'fish-backdrop', 'data-home': hero === true, 'aria-hidden': true },
+          h(FishPlate, { scene: values.scene })),
         show ? h('div', { key: 'sign', className: 'dwe-sign' }, 'dsh-fish-ui') : null,
         show ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
         children)
@@ -867,11 +1143,11 @@ const CSS = `
    slightly translucent, so the wave field behind it would show through the card as
    moving light bands. */
 /* The blank home keeps the card solid only when frosting is switched off. */
-:root.dc-off-glass body:has(canvas.dwe-whale) [data-composer-card] {
+:root.df-off-glass body:has(canvas.dwe-whale) [data-composer-card] {
   background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1));
 }
 
-:root:not(.dc-off-glass) [data-composer-card] {
+:root:not(.df-off-glass) [data-composer-card] {
   /* Much more translucent than the host surface, with a stronger blur and a touch of
      saturation: the frosted look only reads if the backdrop is actually visible. */
   background:
@@ -893,34 +1169,34 @@ const CSS = `
 /* Focus ring in light grey: the composer is a text surface, so the highlight stays
    neutral and the accent colour is reserved for content. */
 :root {
-  --dc-focus-ink: 124, 128, 136;
+  --df-focus-ink: 124, 128, 136;
 }
 
 body[data-ds-dark-theme] {
-  --dc-focus-ink: 224, 226, 232;
+  --df-focus-ink: 224, 226, 232;
 }
 
-:root:not(.dc-off-focusring) [data-composer-card] {
+:root:not(.df-off-focusring) [data-composer-card] {
   box-shadow:
     var(--dsw-elevation-soft),
-    inset 0 0 0 1px rgba(var(--dc-focus-ink), 0),
-    0 0 0 0 rgba(var(--dc-focus-ink), 0),
-    0 0 12px 0 rgba(var(--dc-focus-ink), 0),
-    0 0 32px 2px rgba(var(--dc-focus-ink), 0);
+    inset 0 0 0 1px rgba(var(--df-focus-ink), 0),
+    0 0 0 0 rgba(var(--df-focus-ink), 0),
+    0 0 12px 0 rgba(var(--df-focus-ink), 0),
+    0 0 32px 2px rgba(var(--df-focus-ink), 0);
   transition: box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:root:not(.dc-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
+:root:not(.df-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
   box-shadow:
     var(--dsw-elevation-soft),
-    inset 0 0 0 1.2px rgba(var(--dc-focus-ink), 0.92),
-    0 0 0 3px rgba(var(--dc-focus-ink), 0.12),
-    0 0 14px 1px rgba(var(--dc-focus-ink), 0.22),
-    0 0 40px 6px rgba(var(--dc-focus-ink), 0.1);
+    inset 0 0 0 1.2px rgba(var(--df-focus-ink), 0.92),
+    0 0 0 3px rgba(var(--df-focus-ink), 0.12),
+    0 0 14px 1px rgba(var(--df-focus-ink), 0.22),
+    0 0 40px 6px rgba(var(--df-focus-ink), 0.1);
 }
 
 /* --------------------------------------------------- frame-wide ambient layer */
-.dc-overlay {
+.df-overlay {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -930,7 +1206,7 @@ body[data-ds-dark-theme] {
 }
 
 /* ------------------------------------------- composer stats in the button row */
-.dc-stats {
+.df-stats {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -943,22 +1219,22 @@ body[data-ds-dark-theme] {
   user-select: none;
 }
 
-.dc-stats-item {
+.df-stats-item {
   opacity: 0.85;
 }
 
 
 /* ---------------------------------------------- reasoning effort celebration */
 body[data-ds-dark-theme] {
-  --dc-effort-field: rgba(255, 255, 255, 0.8);
-  --dc-effort-ink: rgba(255, 255, 255, 0.95);
-  --dc-effort-glow: rgba(255, 255, 255, 0.6);
+  --df-effort-field: rgba(255, 255, 255, 0.8);
+  --df-effort-ink: rgba(255, 255, 255, 0.95);
+  --df-effort-glow: rgba(255, 255, 255, 0.6);
 }
 
 body:not([data-ds-dark-theme]) {
-  --dc-effort-field: rgba(58, 62, 72, 0.55);
-  --dc-effort-ink: rgba(22, 24, 28, 0.92);
-  --dc-effort-glow: rgba(40, 44, 52, 0.4);
+  --df-effort-field: rgba(58, 62, 72, 0.55);
+  --df-effort-ink: rgba(22, 24, 28, 0.92);
+  --df-effort-glow: rgba(40, 44, 52, 0.4);
 }
 
 [data-composer-card] {
@@ -968,7 +1244,7 @@ body:not([data-ds-dark-theme]) {
   isolation: isolate;
 }
 
-[data-composer-card].dc-effort-on::before {
+[data-composer-card].df-effort-on::before {
   content: '';
   position: absolute;
   left: 13%;
@@ -984,18 +1260,18 @@ body:not([data-ds-dark-theme]) {
   background-image: linear-gradient(
       90deg,
       transparent 0%,
-      var(--dc-effort-glow) 50%,
+      var(--df-effort-glow) 50%,
       transparent 100%
     ),
     linear-gradient(
       90deg,
       transparent 0%,
-      var(--dc-effort-glow) 50%,
+      var(--df-effort-glow) 50%,
       transparent 100%
     ),
     radial-gradient(
       circle at 1px 1px,
-      var(--dc-effort-field) 0.9px,
+      var(--df-effort-field) 0.9px,
       transparent 1.15px
     );
   background-size: 0% 100%, 0% 100%, 4px 4px;
@@ -1005,11 +1281,11 @@ body:not([data-ds-dark-theme]) {
   -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
   mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
   clip-path: inset(0 50% 0 50%);
-  animation: dc-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: df-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-[data-composer-card].dc-effort-on::after {
-  content: attr(data-dc-effort);
+[data-composer-card].df-effort-on::after {
+  content: attr(data-df-effort);
   position: absolute;
   left: 0;
   right: 0;
@@ -1022,7 +1298,7 @@ body:not([data-ds-dark-theme]) {
   letter-spacing: 0.08em;
   background-image: radial-gradient(
     circle at 1px 1px,
-    var(--dc-effort-ink) 0.95px,
+    var(--df-effort-ink) 0.95px,
     transparent 1.15px
   );
   background-size: 3px 3px;
@@ -1034,13 +1310,13 @@ body:not([data-ds-dark-theme]) {
   filter:
     drop-shadow(0 0 5px rgba(255, 255, 255, 0.4))
     drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
-  animation: dc-effort-word 620ms 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: df-effort-word 620ms 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-[data-composer-card].dc-effort-max::after {
+[data-composer-card].df-effort-max::after {
   background-image: radial-gradient(
     circle at 1px 1px,
-    var(--dc-accent) 0.95px,
+    var(--df-accent) 0.95px,
     transparent 1.15px
   );
   filter:
@@ -1048,23 +1324,23 @@ body:not([data-ds-dark-theme]) {
     drop-shadow(0 0 20px rgba(122, 170, 255, 0.45));
 }
 
-body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
+body:has([data-chat-running]) [data-composer-card].df-effort-on::before {
   animation:
-    dc-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    dc-effort-spread 2.2s 900ms ease-out infinite;
+    df-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
+    df-effort-spread 2.2s 900ms ease-out infinite;
 }
 
-@keyframes dc-effort-open {
+@keyframes df-effort-open {
   from { clip-path: inset(0 50% 0 50%); }
   to { clip-path: inset(0 0 0 0); }
 }
 
-@keyframes dc-effort-word {
+@keyframes df-effort-word {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 
-@keyframes dc-effort-spread {
+@keyframes df-effort-spread {
   0% {
     background-size: 12% 100%, 12% 100%, 4px 4px;
     background-position: 50% 50%, 50% 50%, 0 0;
@@ -1076,9 +1352,9 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-composer-card].dc-effort-on::before,
-  [data-composer-card].dc-effort-on::after,
-  body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
+  [data-composer-card].df-effort-on::before,
+  [data-composer-card].df-effort-on::after,
+  body:has([data-chat-running]) [data-composer-card].df-effort-on::before {
     animation: none;
     clip-path: inset(0 0 0 0);
     opacity: 1;
@@ -1089,7 +1365,7 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 
 
 /* ------------------------------------------------------------- startup splash */
-.dc-splash {
+.df-splash {
   position: fixed;
   inset: 0;
   z-index: 2147483600;
@@ -1098,22 +1374,22 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   justify-content: center;
   background: #050507;
   pointer-events: none;
-  animation: dc-splash-out 460ms 1860ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: df-splash-out 460ms 1860ms cubic-bezier(0.4, 0, 1, 1) forwards;
   contain: strict;
 }
 
 /* Compositor-only animation: every property below is opacity or transform. */
-.dc-splash-grid {
+.df-splash-grid {
   position: absolute;
   inset: -2px;
   background-image: radial-gradient(circle at 1px 1px, rgba(186, 196, 214, 0.5) 0.9px, transparent 1.15px);
   background-size: 18px 18px;
   opacity: 0;
   will-change: opacity;
-  animation: dc-splash-grid-in 620ms 60ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: df-splash-grid-in 620ms 60ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.dc-splash-ring {
+.df-splash-ring {
   position: absolute;
   width: 108vmax;
   height: 108vmax;
@@ -1122,10 +1398,10 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   opacity: 0;
   transform: scale(0.08);
   will-change: transform, opacity;
-  animation: dc-splash-ring 900ms 60ms cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
+  animation: df-splash-ring 900ms 60ms cubic-bezier(0.16, 0.84, 0.36, 1) forwards;
 }
 
-.dc-splash-mark {
+.df-splash-mark {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1134,7 +1410,7 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   overflow: hidden;
 }
 
-.dc-splash-line {
+.df-splash-line {
   display: block;
   font: 800 clamp(38px, 7.8vw, 108px) / 1.14 "Segoe UI", system-ui, sans-serif;
   letter-spacing: 0.09em;
@@ -1145,19 +1421,19 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   opacity: 0;
   transform: translate3d(0, 14px, 0) scale(0.985);
   will-change: transform, opacity;
-  animation: dc-splash-line 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: df-splash-line 760ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
-.dc-splash-deepseek {
+.df-splash-deepseek {
   background-image: radial-gradient(circle at 1px 1px, #eef0f4 1.1px, transparent 1.35px);
 }
 
-.dc-splash-harness {
+.df-splash-harness {
   background-image: radial-gradient(circle at 1px 1px, #7aaaff 1.1px, transparent 1.35px);
   animation-delay: 170ms;
 }
 
-.dc-splash-sheen {
+.df-splash-sheen {
   position: absolute;
   top: -10%;
   bottom: -10%;
@@ -1172,10 +1448,10 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   opacity: 0;
   transform: translate3d(-120%, 0, 0);
   will-change: transform, opacity;
-  animation: dc-splash-sheen 820ms 1080ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  animation: df-splash-sheen 820ms 1080ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
 }
 
-.dc-splash-veil {
+.df-splash-veil {
   position: absolute;
   inset: 0;
   background:
@@ -1183,36 +1459,36 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
     linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 26%);
 }
 
-@keyframes dc-splash-grid-in {
+@keyframes df-splash-grid-in {
   to { opacity: 0.55; }
 }
 
-@keyframes dc-splash-ring {
+@keyframes df-splash-ring {
   0% { opacity: 0; transform: scale(0.08); }
   30% { opacity: 0.5; }
   100% { opacity: 0; transform: scale(1.15); }
 }
 
-@keyframes dc-splash-line {
+@keyframes df-splash-line {
   to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
 }
 
-@keyframes dc-splash-sheen {
+@keyframes df-splash-sheen {
   0% { opacity: 0; transform: translate3d(-120%, 0, 0); }
   20% { opacity: 0.9; }
   100% { opacity: 0; transform: translate3d(300%, 0, 0); }
 }
 
-@keyframes dc-splash-out {
+@keyframes df-splash-out {
   to { opacity: 0; visibility: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dc-splash,
-  .dc-splash-grid,
-  .dc-splash-ring,
-  .dc-splash-line,
-  .dc-splash-sheen {
+  .df-splash,
+  .df-splash-grid,
+  .df-splash-ring,
+  .df-splash-line,
+  .df-splash-sheen {
     animation: none;
     opacity: 1;
     transform: none;
@@ -1220,24 +1496,24 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 }
 
 /* ------------------------------------------------------------ settings page */
-.dc-set {
+.df-set {
   max-width: 720px;
   padding: 4px 2px 24px;
   color: var(--dsw-alias-label-primary);
   font-synthesis: none;
 }
 
-.dc-set-group {
+.df-set-group {
   margin: 0 0 22px;
   padding: 0 0 6px;
   border-bottom: 1px solid var(--dsw-alias-border-l1);
 }
 
-.dc-set-group:last-of-type {
+.df-set-group:last-of-type {
   border-bottom: 0;
 }
 
-.dc-set-group-title {
+.df-set-group-title {
   margin: 0 0 6px;
   color: var(--dsw-alias-label-tertiary);
   font-size: 11px;
@@ -1246,14 +1522,14 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   text-transform: uppercase;
 }
 
-.dc-set-row {
+.df-set-row {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 10px 0;
 }
 
-.dc-set-text {
+.df-set-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1261,12 +1537,12 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   flex: 1 1 auto;
 }
 
-.dc-set-label {
+.df-set-label {
   font-size: 14px;
   line-height: 1.4;
 }
 
-.dc-set-desc {
+.df-set-desc {
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   line-height: 1.45;
@@ -1274,7 +1550,7 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
 
 /* The control is an SVG capsule with a drawn circle knob, so the track ends are
    exact semicircles and the knob is an exact circle at any zoom. */
-.dc-switch {
+.df-switch {
   flex: none;
   display: inline-flex;
   padding: 0;
@@ -1284,20 +1560,20 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   cursor: pointer;
 }
 
-.dc-switch:focus-visible {
+.df-switch:focus-visible {
   outline: 2px solid var(--dsw-focus-ring-color, #7aaaff);
   outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dc-switch svg rect,
-  .dc-switch svg g,
-  .dc-switch svg circle {
+  .df-switch svg rect,
+  .df-switch svg g,
+  .df-switch svg circle {
     transition: none !important;
   }
 }
 
-.dc-set-footer {
+.df-set-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1305,7 +1581,7 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   padding-top: 8px;
 }
 
-.dc-set-reset {
+.df-set-reset {
   padding: 7px 14px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: var(--dsw-radius-sm, 6px);
@@ -1316,25 +1592,25 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   cursor: pointer;
 }
 
-.dc-set-reset:hover {
+.df-set-reset:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
 }
 
-.dc-set-note {
+.df-set-note {
   color: var(--dsw-alias-label-tertiary);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 /* -------------------------------------------------------- sidebar entry + sheet */
-.dc-foot {
+.df-foot {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.dc-foot-button {
+.df-foot-button {
   position: relative;
   overflow: hidden;
   display: flex;
@@ -1355,7 +1631,7 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   overflow: hidden;
 }
 
-.dc-foot-dots {
+.df-foot-dots {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -1364,39 +1640,39 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   pointer-events: none;
 }
 
-.dc-foot-button > :not(.dc-foot-dots) {
+.df-foot-button > :not(.df-foot-dots) {
   position: relative;
   z-index: 1;
 }
 
-.dc-foot-button:hover {
+.df-foot-button:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
   color: var(--dsw-alias-label-primary);
 }
 
-.dc-foot-button:focus-visible {
+.df-foot-button:focus-visible {
   outline: 2px solid var(--dsw-focus-ring-color, #7aaaff);
   outline-offset: 1px;
 }
 
-.dc-foot-label {
+.df-foot-label {
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.dc-sheet-root {
+.df-sheet-root {
   position: fixed;
   inset: 0;
   z-index: 2147483001;
 }
 
-.dc-sheet-scrim {
+.df-sheet-scrim {
   position: absolute;
   inset: 0;
   background: rgba(0, 0, 0, 0.28);
 }
 
-.dc-sheet-panel {
+.df-sheet-panel {
   position: absolute;
   left: 14px;
   bottom: 78px;
@@ -1415,15 +1691,15 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   );
   box-shadow: var(--dsw-elevation-panel, 0 18px 48px rgba(0, 0, 0, 0.42));
   overflow: hidden;
-  animation: dc-sheet-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: df-sheet-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes dc-sheet-in {
+@keyframes df-sheet-in {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.dc-sheet-head {
+.df-sheet-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1432,13 +1708,13 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   border-bottom: 1px solid var(--dsw-alias-border-l1);
 }
 
-.dc-sheet-title {
+.df-sheet-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
 }
 
-.dc-sheet-close {
+.df-sheet-close {
   border: 0;
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
@@ -1449,51 +1725,51 @@ body:has([data-chat-running]) [data-composer-card].dc-effort-on::before {
   cursor: pointer;
 }
 
-.dc-sheet-close:hover {
+.df-sheet-close:hover {
   background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.1));
   color: var(--dsw-alias-label-primary);
 }
 
-.dc-sheet-body {
+.df-sheet-body {
   padding: 4px 16px 8px;
   overflow-y: auto;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dc-sheet-panel { animation: none; }
+  .df-sheet-panel { animation: none; }
 }
 /* fish reading:start */
 /* Deep Fish reading: semantic hooks only; never animate streamed text. */
 body {
-  --dc-accent: var(--dsw-alias-link);
-  --dc-focus: color-mix(in srgb, var(--dc-accent) 18%, transparent);
+  --df-accent: var(--dsw-alias-brand-primary, #4D6BFE);
+  --df-focus: color-mix(in srgb, var(--df-accent) 18%, transparent);
 }
 
-:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"]:not([data-chat-group-part="reasoning"]) :is(p, li) {
+:root:not(.df-off-reading) [data-chat-flow-kind="assistant-step"]:not([data-chat-group-part="reasoning"]) :is(p, li) {
   line-height: 1.85;
   text-wrap: pretty;
 }
-:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(h1, h2, h3, h4) {
+:root:not(.df-off-reading) [data-chat-flow-kind="assistant-step"] :is(h1, h2, h3, h4) {
   color: var(--dsw-alias-label-primary);
   letter-spacing: -0.015em;
   line-height: 1.45;
   text-wrap: balance;
 }
-:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(h2, h3) {
+:root:not(.df-off-reading) [data-chat-flow-kind="assistant-step"] :is(h2, h3) {
   padding-block-start: 0.25em;
 }
-:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] blockquote {
-  border-inline-start: 2px solid color-mix(in srgb, var(--dc-accent) 38%, transparent);
+:root:not(.df-off-reading) [data-chat-flow-kind="assistant-step"] blockquote {
+  border-inline-start: 2px solid color-mix(in srgb, var(--df-accent) 38%, transparent);
   padding-inline-start: 1em;
   color: var(--dsw-alias-label-secondary);
 }
-:root:not(.dc-off-reading) [data-chat-flow-kind="assistant-step"] :is(p, li) > code {
+:root:not(.df-off-reading) [data-chat-flow-kind="assistant-step"] :is(p, li) > code {
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-interactive-bg-hover);
   border-radius: 4px;
   padding: 0.12em 0.35em;
 }
-:root:not(.dc-off-code) [data-chat-flow-kind="assistant-step"] pre {
+:root:not(.df-off-code) [data-chat-flow-kind="assistant-step"] pre {
   font-variant-ligatures: none;
   tab-size: 2;
 }
@@ -1501,23 +1777,23 @@ body {
    part of the same light as the accent. */
 [data-slot="sidebar.brand.mark"] {
   filter:
-    drop-shadow(0 0 5px color-mix(in srgb, var(--dc-accent) 50%, transparent))
-    drop-shadow(0 0 16px color-mix(in srgb, var(--dc-accent) 26%, transparent));
+    drop-shadow(0 0 5px color-mix(in srgb, var(--df-accent) 50%, transparent))
+    drop-shadow(0 0 16px color-mix(in srgb, var(--df-accent) 26%, transparent));
 }
 
 [data-slot="sidebar.brand.name"] {
   text-shadow:
-    0 0 1px color-mix(in srgb, var(--dc-accent) 42%, transparent),
-    0 0 9px color-mix(in srgb, var(--dc-accent) 34%, transparent),
-    0 0 22px color-mix(in srgb, var(--dc-accent) 18%, transparent);
+    0 0 1px color-mix(in srgb, var(--df-accent) 42%, transparent),
+    0 0 9px color-mix(in srgb, var(--df-accent) 34%, transparent),
+    0 0 22px color-mix(in srgb, var(--df-accent) 18%, transparent);
 }
 
 /* User messages carry a whale-blue halo: a hairline ring plus two soft halos. */
 [data-message-bubble] {
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--dc-accent) 52%, transparent),
-    0 0 14px 1px color-mix(in srgb, var(--dc-accent) 22%, transparent),
-    0 0 38px 8px color-mix(in srgb, var(--dc-accent) 10%, transparent);
+    0 0 0 1px color-mix(in srgb, var(--df-accent) 52%, transparent),
+    0 0 14px 1px color-mix(in srgb, var(--df-accent) 22%, transparent),
+    0 0 38px 8px color-mix(in srgb, var(--df-accent) 10%, transparent);
 }
 
 /* Selected conversation: a flat black plate in dark theme instead of the host's
@@ -1530,52 +1806,52 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
   background-color: #e9e9ec;
 }
 
-:root:not(.dc-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
-  color: var(--dc-accent);
+:root:not(.df-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
+  color: var(--df-accent);
   /* A soft halo so the accent reads as light rather than paint. */
   text-shadow:
-    0 0 1px color-mix(in srgb, var(--dc-accent) 55%, transparent),
-    0 0 8px color-mix(in srgb, var(--dc-accent) 42%, transparent),
-    0 0 20px color-mix(in srgb, var(--dc-accent) 22%, transparent);
+    0 0 1px color-mix(in srgb, var(--df-accent) 55%, transparent),
+    0 0 8px color-mix(in srgb, var(--df-accent) 42%, transparent),
+    0 0 20px color-mix(in srgb, var(--df-accent) 22%, transparent);
 }
-:root:not(.dc-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
+:root:not(.df-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
   opacity: 0;
 }
-:root:not(.dc-off-thinkingsphere) [data-chat-running] [class*="_runningIcon"] {
+:root:not(.df-off-thinkingsphere) [data-chat-running] [class*="_runningIcon"] {
   display: none;
 }
 
 /* Compact figures leave submit reachable in a narrow composer. */
-.dc-stats {
+.df-stats {
   gap: 10px;
   font-size: 11px;
   letter-spacing: 0.015em;
   font-variant-numeric: tabular-nums;
 }
-.dc-stats-label {
+.df-stats-label {
   margin-inline-end: 4px;
   color: var(--dsw-alias-label-tertiary);
   font-size: 9px;
   letter-spacing: 0.06em;
 }
-.dc-stats-item { color: var(--dsw-alias-label-secondary); }
+.df-stats-item { color: var(--dsw-alias-label-secondary); }
 @media (max-width: 640px) {
-  .dc-stats-label { display: none; }
-  .dc-stats { gap: 6px; }
+  .df-stats-label { display: none; }
+  .df-stats { gap: 6px; }
 }
 @media (max-width: 420px) {
-  .dc-stats-output { display: none; }
+  .df-stats-output { display: none; }
 }
-.dc-switch:disabled { cursor: default; opacity: 0.48; }
-.dc-set-reset:disabled { cursor: default; opacity: 0.48; }
-.dc-settings-status {
+.df-switch:disabled { cursor: default; opacity: 0.48; }
+.df-set-reset:disabled { cursor: default; opacity: 0.48; }
+.df-settings-status {
   margin: 0 0 16px;
   font-size: 12px;
   color: var(--dsw-alias-label-secondary);
 }
-.dc-settings-status[role="alert"] { color: var(--dsw-alias-state-error-primary); }
+.df-settings-status[role="alert"] { color: var(--dsw-alias-state-error-primary); }
 @media (prefers-reduced-motion: reduce) {
-  .dc-sheet-panel, .dc-sheet-scrim { animation: none; }
+  .df-sheet-panel, .df-sheet-scrim { animation: none; }
   [data-composer-card] { transition: none !important; }
 }
 
@@ -1591,9 +1867,9 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
      * label is hidden by `reading.css` while this is on; turning it off restores the host
      * row untouched and only parks the sphere to the left of the visible text.
      */
-    function DcOverlay() {
-      const canvasRef = React.useRef(null)
-      const settings = useDcSettings()
+    function DfOverlay() {
+      const canvasRef = React.useRef<HTMLCanvasElement>(null)
+      const settings = useDfSettings()
       const sphereOn = settings.values.thinkingSphere !== false
       const labelOn = settings.values.thinkingLabel !== false
       React.useEffect(() => {
@@ -1613,12 +1889,12 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         // The hidden host text cannot be trusted for the clock (its digits are not the
         // elapsed value), so the label counts wall time from when the running row first
         // appeared and restarts whenever the row leaves the document.
-        const elapsedOf = (now) => {
+        const elapsedOf = (now: number) => {
           if (clock.since === 0) clock.since = now
           return Math.max(0, Math.round((now - clock.since) / 1000))
         }
 
-        const drawSphere = (cx, cy, spin, ink) => {
+        const drawSphere = (cx: number, cy: number, spin: number, ink: string) => {
           // Two batched passes: a soft halo under a crisp core, so the sphere reads as
           // light instead of loose dots. Only 42 dots, so buckets are cheap.
           const points = []
@@ -1669,7 +1945,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           context.textBaseline = 'middle'
           const text = 'Deep thinking for ' + seconds + 's. . .'
           const width = context.measureText(text).width
-          const accent = (getComputedStyle(row).getPropertyValue('--dc-accent') || '').trim() || '#7aaaff'
+          const accent = (getComputedStyle(row).getPropertyValue('--df-accent') || '').trim() || '#7aaaff'
           const band = motion.matches ? -1e4 : ((now % 2600) / 2600) * (width + 140) - 70
           context.save()
           context.beginPath()
@@ -1688,7 +1964,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           context.restore()
         }
 
-        const paint = now => {
+        const paint = (now: number) => {
           frame = 0
           if (stopped || document.hidden) return
           const dpr = Math.min(2, devicePixelRatio || 1)
@@ -1700,7 +1976,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           }
           clear()
           context.setTransform(dpr, 0, 0, dpr, 0, 0)
-          const card = document.querySelector('[data-composer-card]')
+          const card = document.querySelector<HTMLElement>('[data-composer-card]')
           const cardTop = card === null ? height : card.getBoundingClientRect().top
           const spin = motion.matches ? 0.35 : now / 1800
           const running = document.querySelectorAll('[data-chat-running]')
@@ -1769,54 +2045,22 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         }
       }, [sphereOn, labelOn])
       return sphereOn || labelOn
-        ? h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+        ? h('canvas', { ref: canvasRef, className: 'df-overlay', 'aria-hidden': 'true' })
         : null
     }
 
 /* fish indicator:end */
 
     /** Compact session stats for the composer button row. */
-    function DcStats(props) {
-      const { values } = useDcSettings()
-      const usage = props.useProjection('tokenUsage')
-      const pressure = props.useProjection('contextPressure')
-      if (!values.stats) return null
-      const billed = usage === undefined || usage === null
-        ? 0
-        : (usage.uncachedInputTokens || 0) + (usage.cacheReadTokens || 0)
-          + (usage.cacheWriteTokens || 0) + (usage.outputTokens || 0)
-      const used = pressure === undefined || pressure === null
-        ? undefined
-        : (pressure.projectedTokens !== undefined ? pressure.projectedTokens : pressure.pressureTokens)
-      const windowSize = pressure === undefined || pressure === null ? undefined : pressure.contextWindow
-      const percent = used === undefined || windowSize === undefined || windowSize === 0
-        ? null
-        : Math.max(0, Math.min(100, Math.round((used / windowSize) * 100)))
-      if (billed === 0 && percent === null) return null
-      const tokens = billed >= 1e6
-        ? (billed / 1e6).toFixed(1) + 'm'
-        : billed >= 1e3
-          ? (billed / 1e3).toFixed(1) + 'k'
-          : String(billed)
-      return h('span', { className: 'dc-stats' }, [
-        percent === null
-          ? null
-          : h('span', { key: 'ctx', className: 'dc-stats-item', title: dcUsesChinese() ? '上下文占用' : 'Context usage' }, [h('span', { key: 'label', className: 'dc-stats-label' }, 'CTX'), percent + '%']),
-        billed === 0
-          ? null
-          : h('span', { key: 'tok', className: 'dc-stats-item dc-stats-output', title: dcUsesChinese() ? '累计 Token 用量' : 'Cumulative token usage' }, [h('span', { key: 'label', className: 'dc-stats-label' }, 'TOK'), tokens]),
-      ])
-    }
-
     /**
      * Hover dot field for every rows in the sidebar.
      *
      * No nodes are injected into host buttons: a single fixed canvas tracks the pointer,
      * finds the sidebar button under it, and prints a dot field clipped to that button.
      */
-    function DcSidebarDots() {
-      const canvasRef = React.useRef(null)
-      const { values } = useDcSettings()
+    function DfSidebarDots() {
+      const canvasRef = React.useRef<HTMLCanvasElement>(null)
+      const { values } = useDfSettings()
       const showDots = values.sidebarDots !== false
       const showRail = values.sidebarRail !== false
       React.useEffect(() => {
@@ -1845,7 +2089,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         // guess leaked into the chat column and put rails on every button in the app.
         const sidebarScope = () => {
           if (rootCache !== null && rootCache.isConnected) return rootCache
-          const foot = document.querySelector('.dc-foot-button')
+          const foot = document.querySelector('.df-foot-button')
           if (foot === null) return null
           let node = foot
           for (let depth = 0; depth < 10; depth += 1) {
@@ -1895,7 +2139,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           }
           const style = getComputedStyle(state.row)
           const radius = parseFloat(style.borderTopLeftRadius) || 8
-          const accent = (style.getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          const accent = (style.getPropertyValue('--df-accent') || '').trim() || '#7aa4ff'
           const reach = 74
           context.save()
           context.beginPath()
@@ -1976,7 +2220,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           const insideSidebar = target !== null
             && scope !== null
             && scope.contains(target)
-            && !target.closest('.dc-foot')
+            && !target.closest('.df-foot')
           if (!insideSidebar) {
             if (state.inside) {
               state.inside = false
@@ -2017,7 +2261,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         }
       }, [showDots, showRail])
       return showDots || showRail
-        ? h('canvas', { ref: canvasRef, className: 'dc-overlay', 'aria-hidden': 'true' })
+        ? h('canvas', { ref: canvasRef, className: 'df-overlay', 'aria-hidden': 'true' })
         : null
     }
 
@@ -2029,8 +2273,8 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
      * overlay canvas, clipped to the composer card. Dots never move once printed; they only
      * fade.
      */
-    function DcCaretTrail() {
-      const canvasRef = React.useRef(null)
+    function DfCaretTrail() {
+      const canvasRef = React.useRef<HTMLCanvasElement>(null)
       React.useEffect(() => {
         const canvas = canvasRef.current
         if (canvas === null) return
@@ -2101,7 +2345,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           if (active === null || typeof active.closest !== 'function') return null
           const card = active.closest('[data-composer-card]')
           if (card === null) return null
-          const editable = active.isContentEditable
+          const editable = active instanceof HTMLElement && active.isContentEditable
             ? active
             : active.closest('[contenteditable], [role="textbox"], textarea')
           if (editable === null || !card.contains(editable)) return null
@@ -2182,7 +2426,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
             const style = getComputedStyle(card)
             radius = parseFloat(style.borderTopLeftRadius) || 12
           }
-          const accent = (getComputedStyle(document.body).getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          const accent = (getComputedStyle(document.body).getPropertyValue('--df-accent') || '').trim() || '#7aa4ff'
           context.save()
           if (clip !== null) {
             context.beginPath()
@@ -2239,7 +2483,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           frame = requestAnimationFrame(paint)
         }
 
-        window.__dcCaretProbe = () => {
+        window.__dfCaretProbe = () => {
           const caret = caretOf()
           return caret === null
             ? { ok: false, active: document.activeElement ? document.activeElement.tagName : null }
@@ -2271,7 +2515,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       }, [])
       return h('canvas', {
         ref: canvasRef,
-        className: 'dc-overlay dc-caret-layer',
+        className: 'df-overlay df-caret-layer',
         'aria-hidden': 'true',
         style: { zIndex: 2147483000 },
       })
@@ -2284,10 +2528,10 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
      * unfolding dot field and the dot-printed level name are pseudo-elements, so there is no
      * canvas geometry to measure and nothing to drift when the layout changes.
      */
-    const DC_EFFORT_OFF = /^(off|none|disabled?|无|关闭)$/i
+    const DF_EFFORT_OFF = /^(off|none|disabled?|无|关闭)$/i
 
-    function dcEffortLabel() {
-      const card = document.querySelector('[data-composer-card]')
+    function dfEffortLabel() {
+      const card = document.querySelector<HTMLElement>('[data-composer-card]')
       if (card === null) return null
       const node = card.querySelector('[class*="_triggerEffort"]')
       if (node === null) return null
@@ -2295,25 +2539,25 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       return text === '' ? null : text
     }
 
-    function dcPaintEffort(label) {
-      const card = document.querySelector('[data-composer-card]')
+    function dfPaintEffort(label: string | null) {
+      const card = document.querySelector<HTMLElement>('[data-composer-card]')
       if (card === null) return
       if (label === null) {
-        card.removeAttribute('data-dc-effort')
-        card.classList.remove('dc-effort-on', 'dc-effort-max')
+        card.removeAttribute('data-df-effort')
+        card.classList.remove('df-effort-on', 'df-effort-max')
         return
       }
       const word = label.toUpperCase()
-      const changed = card.getAttribute('data-dc-effort') !== word
-      card.setAttribute('data-dc-effort', word)
-      card.classList.toggle('dc-effort-max', word === 'MAX')
+      const changed = card.getAttribute('data-df-effort') !== word
+      card.setAttribute('data-df-effort', word)
+      card.classList.toggle('df-effort-max', word === 'MAX')
       if (changed) {
         // Toggle the class off and on so the CSS animation replays for the new word.
-        card.classList.remove('dc-effort-on')
+        card.classList.remove('df-effort-on')
         void card.offsetWidth
-        card.classList.add('dc-effort-on')
-      } else if (!card.classList.contains('dc-effort-on')) {
-        card.classList.add('dc-effort-on')
+        card.classList.add('df-effort-on')
+      } else if (!card.classList.contains('df-effort-on')) {
+        card.classList.add('df-effort-on')
       }
     }
 
@@ -2323,39 +2567,39 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
      * The whole animation is CSS transform/opacity so the compositor drives it: no canvas,
      * no per-frame JavaScript while the app is still booting.
      */
-    function dcPlaySplash() {
-      if (window.__dcSplashPlayed === true) return
-      window.__dcSplashPlayed = true
+    function dfPlaySplash() {
+      if (window.__dfSplashPlayed === true) return
+      window.__dfSplashPlayed = true
       try {
         if (typeof document === 'undefined' || document.body === null) return
         if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
         const layer = document.createElement('div')
-        layer.className = 'dc-splash'
+        layer.className = 'df-splash'
         layer.setAttribute('aria-hidden', 'true')
         const grid = document.createElement('div')
-        grid.className = 'dc-splash-grid'
+        grid.className = 'df-splash-grid'
         const ring = document.createElement('div')
-        ring.className = 'dc-splash-ring'
+        ring.className = 'df-splash-ring'
         const mark = document.createElement('div')
-        mark.className = 'dc-splash-mark'
+        mark.className = 'df-splash-mark'
         const deepseek = document.createElement('span')
-        deepseek.className = 'dc-splash-line dc-splash-deepseek'
+        deepseek.className = 'df-splash-line df-splash-deepseek'
         deepseek.textContent = 'deepseek'
         const harness = document.createElement('span')
-        harness.className = 'dc-splash-line dc-splash-harness'
+        harness.className = 'df-splash-line df-splash-harness'
         harness.textContent = 'harness'
         const sheen = document.createElement('div')
-        sheen.className = 'dc-splash-sheen'
+        sheen.className = 'df-splash-sheen'
         mark.append(deepseek, harness, sheen)
         const veil = document.createElement('div')
-        veil.className = 'dc-splash-veil'
+        veil.className = 'df-splash-veil'
         layer.append(grid, ring, mark, veil)
         document.body.appendChild(layer)
         const remove = () => {
           if (layer.isConnected) layer.remove()
         }
         layer.addEventListener('animationend', event => {
-          if (event.animationName === 'dc-splash-out') remove()
+          if (event.animationName === 'df-splash-out') remove()
         })
         setTimeout(remove, 3200)
       } catch (error) {
@@ -2364,116 +2608,138 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     }
 
     /* fish runtime:start */
-    // Profile settings and token layers; embedded into client.js by build-runtime.mjs.
-    const DC_SETTINGS_KEY = 'dsh-fish-ui:settings'
-    const DC_DEFAULT_SETTINGS = Object.freeze(Object.fromEntries([
+    // Profile settings and host theme token layers.
+    const DF_SETTINGS_KEY = 'dsh-fish-ui:settings'
+    const DF_FLAGS = [
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
       'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
       'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
-      'catppuccin', 'aurora', 'cursor', 'textMotion',
-    ].map(key => [key, true])))
-    const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
-      .map(key => [key, 'dc-off-' + key.toLowerCase()])))
-    const dcSettingsListeners = new Set()
-    let dcSettings = DC_DEFAULT_SETTINGS
-    let dcSnapshot = { values: dcSettings, status: 'loading', writable: false, pending: false, error: '' }
-    let dcWrite = null
-    let dcSettingsOwner = null
-    let dcTheme = null
-    let dcThemeLayers = new Map()
-    let dcMounted = false
+      'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons',
+    ] as const
+    type FishSettings = Readonly<Record<typeof DF_FLAGS[number], boolean> & { scene: SceneId; sceneMotion: string; iconStyle: string; accentColor: string }>
+    const DF_DEFAULT_SETTINGS = Object.freeze({
+      ...Object.fromEntries(DF_FLAGS.map(key => [key, true])),
+      scene: 'atlas', sceneMotion: 'calm', iconStyle: 'duotone', accentColor: BRAND_BLUE,
+    }) as FishSettings
+    function validSetting(key: string, value: unknown) {
+      if (key === 'accentColor') return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
+      if (Object.hasOwn(STUDIO_CHOICES, key)) return typeof value === 'string' && STUDIO_CHOICES[key as keyof typeof STUDIO_CHOICES].includes(value)
+      return (DF_FLAGS as readonly string[]).includes(key) && typeof value === 'boolean'
+    }
+    const DF_OFF_CLASS = Object.freeze(Object.fromEntries(DF_FLAGS
+      .map(key => [key, 'df-off-' + key.toLowerCase()])))
+    const dfSettingsListeners = new Set<() => void>()
+    let dfSettings = DF_DEFAULT_SETTINGS
+    let dfSnapshot = { values: dfSettings, status: 'loading', writable: false, pending: false, error: '' }
+    type WriteSettings = (values: Partial<FishSettings>) => Promise<void>
+    let dfWrite: WriteSettings | null = null
+    let dfSettingsOwner: WriteSettings | null = null
+    let dfTheme: FishThemeService | null = null
+    const dfThemeLayers = new Map<string, () => void>()
+    let dfMounted = false
 
-    const dcReadLegacy = () => {
+    const dfReadLegacy = () => {
       try {
-        const parsed = JSON.parse(window.localStorage.getItem(DC_SETTINGS_KEY))
+        const parsed = JSON.parse(window.localStorage.getItem(DF_SETTINGS_KEY))
         if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) return null
-        const values = Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
+        const values = Object.fromEntries(DF_FLAGS
           .filter(key => typeof parsed[key] === 'boolean').map(key => [key, parsed[key]]))
         return Object.keys(values).length ? values : null
       } catch { return null }
     }
-    const dcLegacy = dcReadLegacy()
-    dcSettings = Object.freeze({ ...DC_DEFAULT_SETTINGS, ...dcLegacy })
-    dcSnapshot = { ...dcSnapshot, values: dcSettings }
-    const dcSubscribeSettings = listener => {
-      dcSettingsListeners.add(listener)
-      return () => dcSettingsListeners.delete(listener)
+    const dfLegacy = dfReadLegacy()
+    dfSettings = Object.freeze({ ...DF_DEFAULT_SETTINGS, ...dfLegacy })
+    dfSnapshot = { ...dfSnapshot, values: dfSettings }
+    const dfSubscribeSettings = (listener: () => void) => {
+      dfSettingsListeners.add(listener)
+      return () => dfSettingsListeners.delete(listener)
     }
-    const dcGetSnapshot = () => dcSnapshot
-    const useDcSettings = () => React.useSyncExternalStore(dcSubscribeSettings, dcGetSnapshot, dcGetSnapshot)
-    const dcModes = (light, dark) => ({ light, dark })
-    const DC_CODE = {
-      '--shiki-token-constant': dcModes('#2562A5', '#92BEF4'),
-      '--shiki-token-string': dcModes('#326B55', '#A5CCB8'),
-      '--shiki-token-comment': dcModes('#657287', '#8E9BAF'),
-      '--shiki-token-keyword': dcModes('#765795', '#C0ACD8'),
-      '--shiki-token-parameter': dcModes('#956032', '#D8B18A'),
-      '--shiki-token-function': dcModes('#406A9D', '#A7C8F2'),
-      '--shiki-token-string-expression': dcModes('#326B55', '#A5CCB8'),
-      '--shiki-token-punctuation': dcModes('#546377', '#A6B2C4'),
-      '--shiki-token-link': dcModes('#3269B7', '#8AB6FA'),
+    const dfGetSnapshot = () => dfSnapshot
+    const useDfSettings = () => React.useSyncExternalStore(dfSubscribeSettings, dfGetSnapshot, dfGetSnapshot)
+    const dfModes = (light: string, dark: string) => ({ light, dark })
+    const DF_CODE = {
+      '--shiki-token-constant': dfModes('#2562A5', '#92BEF4'),
+      '--shiki-token-string': dfModes('#326B55', '#A5CCB8'),
+      '--shiki-token-comment': dfModes('#657287', '#8E9BAF'),
+      '--shiki-token-keyword': dfModes('#765795', '#C0ACD8'),
+      '--shiki-token-parameter': dfModes('#956032', '#D8B18A'),
+      '--shiki-token-function': dfModes('#406A9D', '#A7C8F2'),
+      '--shiki-token-string-expression': dfModes('#326B55', '#A5CCB8'),
+      '--shiki-token-punctuation': dfModes('#546377', '#A6B2C4'),
+      '--shiki-token-link': dfModes('#3269B7', '#8AB6FA'),
     }
-    const DC_DIFF = {
-      '--dsw-alias-file-diff-added-bg': dcModes('rgb(58 117 196 / 9%)', 'rgb(122 170 255 / 12%)'),
-      '--dsw-alias-file-diff-added-gutter': dcModes('rgb(58 117 196 / 6%)', 'rgb(122 170 255 / 7%)'),
-      '--dsw-alias-file-diff-added-marker': dcModes('#3269B7', '#8AB6FA'),
-      '--dsw-alias-file-diff-deleted-bg': dcModes('rgb(164 97 83 / 9%)', 'rgb(213 156 139 / 10%)'),
-      '--dsw-alias-file-diff-deleted-gutter': dcModes('rgb(164 97 83 / 6%)', 'rgb(213 156 139 / 6%)'),
-      '--dsw-alias-file-diff-deleted-marker': dcModes('#995C50', '#D4A18F'),
-      '--dsw-alias-code-diff-added': dcModes('rgb(58 117 196 / 10%)', 'rgb(122 170 255 / 13%)'),
-      '--dsw-alias-code-diff-deleted': dcModes('rgb(164 97 83 / 10%)', 'rgb(213 156 139 / 11%)'),
+    const DF_DIFF = {
+      '--dsw-alias-file-diff-added-bg': dfModes('rgb(58 117 196 / 9%)', 'rgb(122 170 255 / 12%)'),
+      '--dsw-alias-file-diff-added-gutter': dfModes('rgb(58 117 196 / 6%)', 'rgb(122 170 255 / 7%)'),
+      '--dsw-alias-file-diff-added-marker': dfModes('#3269B7', '#8AB6FA'),
+      '--dsw-alias-file-diff-deleted-bg': dfModes('rgb(164 97 83 / 9%)', 'rgb(213 156 139 / 10%)'),
+      '--dsw-alias-file-diff-deleted-gutter': dfModes('rgb(164 97 83 / 6%)', 'rgb(213 156 139 / 6%)'),
+      '--dsw-alias-file-diff-deleted-marker': dfModes('#995C50', '#D4A18F'),
+      '--dsw-alias-code-diff-added': dfModes('rgb(58 117 196 / 10%)', 'rgb(122 170 255 / 13%)'),
+      '--dsw-alias-code-diff-deleted': dfModes('rgb(164 97 83 / 10%)', 'rgb(213 156 139 / 11%)'),
     }
-    const DC_IDENTITY = {
-      '--dc-accent': dcModes('#3269B7', '#8AB6FA'),
-      '--dc-focus': dcModes('rgb(50 105 183 / 18%)', 'rgb(138 182 250 / 18%)'),
+    const DF_CAT = {
+      '--dsw-alias-bg-base': dfModes('#eff1f5', '#1e1e2e'),
+      '--dsw-alias-bg-layer-1': dfModes('#e6e9ef', '#181825'),
+      '--dsw-alias-bg-layer-2': dfModes('#dce0e8', '#11111b'),
+      '--dsw-alias-bg-overlay': dfModes('#eff1f5', '#181825'),
+      '--dsw-alias-border-l1': dfModes('#bcc0cc', '#313244'),
+      '--dsw-alias-border-l2': dfModes('#acb0be', '#45475a'),
+      '--dsw-alias-label-primary': dfModes('#4c4f69', '#cdd6f4'),
+      '--dsw-alias-label-secondary': dfModes('#6c6f85', '#a6adc8'),
+      '--dsw-specific-sidebar-fill': dfModes('#e6e9ef', '#181825'),
+      '--dsw-alias-state-success-primary': dfModes('#40a02b', '#a6e3a1'),
+      '--dsw-alias-state-warn-primary': dfModes('#df8e1d', '#f9e2af'),
+      '--dsw-alias-state-error-primary': dfModes('#d20f39', '#f38ba8'),
+      '--dsw-alias-state-idle-primary': dfModes('#8c8fa1', '#7f849c'),
     }
-    const DC_CAT = {
-      '--dsw-alias-bg-base': dcModes('#eff1f5', '#1e1e2e'),
-      '--dsw-alias-bg-layer-1': dcModes('#e6e9ef', '#181825'),
-      '--dsw-alias-bg-layer-2': dcModes('#dce0e8', '#11111b'),
-      '--dsw-alias-bg-overlay': dcModes('#eff1f5', '#181825'),
-      '--dsw-alias-border-l1': dcModes('#bcc0cc', '#313244'),
-      '--dsw-alias-border-l2': dcModes('#acb0be', '#45475a'),
-      '--dsw-alias-label-primary': dcModes('#4c4f69', '#cdd6f4'),
-      '--dsw-alias-label-secondary': dcModes('#6c6f85', '#a6adc8'),
-      '--dsw-specific-sidebar-fill': dcModes('#e6e9ef', '#181825'),
-      '--dsw-alias-brand-primary': dcModes('#1e66f5', '#89b4fa'),
-      '--dsw-alias-state-success-primary': dcModes('#40a02b', '#a6e3a1'),
-      '--dsw-alias-state-warn-primary': dcModes('#df8e1d', '#f9e2af'),
-      '--dsw-alias-state-error-primary': dcModes('#d20f39', '#f38ba8'),
-      '--dsw-alias-state-idle-primary': dcModes('#8c8fa1', '#7f849c'),
-      '--dc-accent': dcModes('#8839ef', '#cba6f7'),
-      '--dc-focus': dcModes('rgb(136 57 239 / 18%)', 'rgb(203 166 247 / 18%)'),
-    }
-    function dcSyncTheme() {
-      if (dcTheme === null) return
-      for (const [name, enabled, tokens] of [
-        ['identity', true, DC_IDENTITY],
-        ['catppuccin', dcSettings.catppuccin, DC_CAT],
-        ['code', dcSettings.code, DC_CODE], ['diff', dcSettings.diff, DC_DIFF],
-      ]) {
-        if (enabled && !dcThemeLayers.has(name)) {
-          dcThemeLayers.set(name, dcTheme.overrideTokens('dsh-fish-ui:' + name, tokens))
-        } else if (!enabled && dcThemeLayers.has(name)) {
-          dcThemeLayers.get(name)()
-          dcThemeLayers.delete(name)
+    function dfSyncTheme() {
+      if (dfTheme === null) return
+      const ink = dfSettings.accentColor.toUpperCase()
+      const layers = new Map<string, FishThemeTokens>()
+      if (dfSettings.catppuccin) layers.set('palette', DF_CAT)
+      const channels = [1, 3, 5].map(start => parseInt(ink.slice(start, start + 2), 16))
+      const mixInk = (end: number, weight: number) => '#' + channels.map(channel =>
+        Math.round(channel * (1 - weight) + end * weight).toString(16).padStart(2, '0')).join('')
+      const brightness = .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2]
+      // Retain the selected hue and keep pale or very dark custom swatches visible on both surfaces.
+      const lightInk = brightness > 165 ? mixInk(0, 1 - 138 / brightness) : ink
+      const darkInk = brightness < 165 ? mixInk(255, (165 - brightness) / (255 - brightness)) : ink
+      const focus = 'color-mix(in srgb, ' + ink + ' 22%, transparent)'
+      layers.set('accent-' + ink.slice(1), {
+        '--dsw-alias-brand-primary': dfModes(ink, ink),
+        '--df-accent': dfModes(lightInk, darkInk),
+        '--df-focus': dfModes(focus, focus),
+        '--fish-second-ink': dfModes(darkInk, ink),
+      })
+      if (dfSettings.code) layers.set('code', DF_CODE)
+      if (dfSettings.diff) layers.set('diff', DF_DIFF)
+      for (const [name, dispose] of dfThemeLayers) {
+        if (!layers.has(name)) {
+          dispose()
+          dfThemeLayers.delete(name)
         }
       }
-    }
-    function dcApplySettings() {
-      if (!dcMounted) return
-      for (const [key, className] of Object.entries(DC_OFF_CLASS)) {
-        document.documentElement.classList.toggle(className, dcSettings[key] === false)
+      for (const [name, tokens] of layers) {
+        if (!dfThemeLayers.has(name)) dfThemeLayers.set(name, dfTheme.overrideTokens('dsh-fish-ui:' + name, tokens))
       }
-      dcSyncTheme()
     }
-    function dcPublish(patch) {
-      dcSnapshot = Object.freeze({ ...dcSnapshot, ...patch })
-      dcSettings = dcSnapshot.values
-      dcApplySettings()
-      dcSettingsListeners.forEach(listener => listener())
+    function dfApplySettings() {
+      if (!dfMounted) return
+      for (const [key, className] of Object.entries(DF_OFF_CLASS)) {
+        document.documentElement.classList.toggle(className, dfSettings[key] === false)
+      }
+      document.documentElement.dataset.fishPace = dfSettings.sceneMotion
+      document.documentElement.dataset.fishIcons = dfSettings.iconStyle
+      dfSyncTheme()
     }
-    function dcConnectSettings(scope) {
+    function dfPublish(patch: Partial<typeof dfSnapshot>) {
+      dfSnapshot = Object.freeze({ ...dfSnapshot, ...patch })
+      dfSettings = dfSnapshot.values
+      dfApplySettings()
+      dfSettingsListeners.forEach(listener => listener())
+    }
+    function dfConnectSettings(scope: FishClientContext) {
       // This is the Host patch entry id; the bundle-config key below is the package name.
       const form = scope.configForms.get('dsh-fish-ui')
       let active = true
@@ -2483,21 +2749,21 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         if (!active) return
         const snapshot = form.getSnapshot()
         if (snapshot.status !== 'ready' || snapshot.value === undefined) {
-          dcPublish({ status: snapshot.status, writable: false })
+          dfPublish({ status: snapshot.status, writable: false })
           return
         }
-        const ownsValues = Object.keys(DC_DEFAULT_SETTINGS).some(key =>
+        const ownsValues = Object.keys(DF_DEFAULT_SETTINGS).some(key =>
           snapshot.user !== null && typeof snapshot.user === 'object' && Object.hasOwn(snapshot.user, key))
-        const legacyKeys = dcLegacy === null ? []
-          : Object.keys(dcLegacy).filter(key => Object.hasOwn(DC_DEFAULT_SETTINGS, key))
+        const legacyKeys = dfLegacy === null ? []
+          : Object.keys(dfLegacy).filter(key => Object.hasOwn(DF_DEFAULT_SETTINGS, key))
         if (!migrationTried && legacyKeys.length > 0 && !ownsValues && !snapshot.value.settingsMigrated && snapshot.writable) {
           migrationTried = true
           migrating = true
-          dcPublish({ status: 'ready', writable: true, pending: true, error: '' })
+          dfPublish({ status: 'ready', writable: true, pending: true, error: '' })
           // Only carry keys the current schema still owns: a legacy blob may mention
           // preferences that were removed, and one unknown path rejects the whole write.
-          const ops = Object.entries(dcLegacy)
-            .filter(([key]) => Object.hasOwn(DC_DEFAULT_SETTINGS, key))
+          const ops = Object.entries(dfLegacy)
+            .filter(([key]) => Object.hasOwn(DF_DEFAULT_SETTINGS, key))
             .map(([key, value]) => ({ op: 'set', path: [key], value }))
           ops.push({ op: 'set', path: ['settingsMigrated'], value: true })
           // Fence the exact snapshot that established the namespace was empty.
@@ -2505,73 +2771,74 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           migrate().then(ok => {
             if (!active) return
             migrating = false
-            dcPublish({ pending: false, error: ok ? '' : 'conflict' })
+            dfPublish({ pending: false, error: ok ? '' : 'conflict' })
             adopt()
           }, () => {
             if (!active) return
             migrating = false
-            dcPublish({ pending: false, error: 'save' })
+            dfPublish({ pending: false, error: 'save' })
             adopt()
           })
           // Keep the legacy key read-only: other profiles may share this origin.
           return
         }
         if (migrating) return
-        const values = Object.freeze(Object.fromEntries(Object.entries(DC_DEFAULT_SETTINGS)
-          .map(([key, fallback]) => [key, typeof snapshot.value[key] === 'boolean' ? snapshot.value[key] : fallback])))
-        dcPublish({ values, status: 'ready', writable: snapshot.writable })
+        const values = Object.freeze(Object.fromEntries(Object.entries(DF_DEFAULT_SETTINGS)
+          .map(([key, fallback]) => [key, validSetting(key, snapshot.value[key]) ? snapshot.value[key] : fallback]))) as FishSettings
+        dfPublish({ values, status: 'ready', writable: snapshot.writable })
       }
-      const write = async values => {
-        if (!active || dcSnapshot.pending || dcSnapshot.status !== 'ready' || !dcSnapshot.writable) return
-        dcPublish({ pending: true, error: '' })
+      const write: WriteSettings = async values => {
+        if (!active || dfSnapshot.pending || dfSnapshot.status !== 'ready' || !dfSnapshot.writable) return
+        dfPublish({ pending: true, error: '' })
         try {
-          const ops = Object.entries(values).filter(([key, value]) => Object.hasOwn(DC_DEFAULT_SETTINGS, key) && typeof value === 'boolean')
+          const ops = Object.entries(values).filter(([key, value]) => validSetting(key, value))
             .map(([key, value]) => ({ op: 'set', path: [key], value }))
           ops.push({ op: 'set', path: ['settingsMigrated'], value: true })
           const ok = await form.mutate(ops, form.getSnapshot().revision)
-          if (active) dcPublish({ error: ok ? '' : 'conflict' })
+          if (active) dfPublish({ error: ok ? '' : 'conflict' })
         } catch {
-          if (active) dcPublish({ error: 'save' })
+          if (active) dfPublish({ error: 'save' })
         } finally {
-          if (active) { dcPublish({ pending: false }); adopt() }
+          if (active) { dfPublish({ pending: false }); adopt() }
         }
       }
       scope.effect(() => {
-        dcWrite = write
-        dcSettingsOwner = write
+        dfWrite = write
+        dfSettingsOwner = write
         const unsubscribe = form.subscribe(adopt)
         adopt()
         return () => {
           active = false
           unsubscribe()
-          if (dcWrite === write) dcWrite = null
-          if (dcSettingsOwner === write) {
-            dcSettingsOwner = null
-            dcPublish({ status: 'unavailable', writable: false, pending: false })
+          if (dfWrite === write) dfWrite = null
+          if (dfSettingsOwner === write) {
+            dfSettingsOwner = null
+            dfPublish({ status: 'unavailable', writable: false, pending: false })
           }
         }
       }, 'dsh-fish-ui: Host preferences')
     }
-    const dcSetSetting = (key, value) => dcWrite?.({ [key]: value })
+    const dfSetSetting = <K extends keyof FishSettings>(key: K, value: FishSettings[K]) => dfWrite?.({ [key]: value })
 
-    class DcBoundary extends React.Component {
+    class DfBoundary extends React.Component<{ children?: React.ReactNode; fallback?: React.ReactNode }> {
       state = { failed: false }
       static getDerivedStateFromError() { return { failed: true } }
       componentDidCatch(error) { console.error('[dsh-fish-ui] enhancement failed', error) }
       render() { return this.state.failed ? (this.props.fallback ?? null) : this.props.children }
     }
-    const dcSafe = Component => function DeepFishSafeSlot(props) {
-      return h(DcBoundary, { fallback: props.children }, h(Component, props))
+    const dfSafe = Component => function DeepFishSafeSlot(props) {
+      return h(DfBoundary, { fallback: props.children }, h(Component, props))
     }
 
 /* fish runtime:end */
 
     /** Settings copy follows the app language (Chinese unless the UI is English). */
-    const dcUsesChinese = () => {
+    const dfUsesChinese = () => {
       const lang = (document.documentElement.lang || navigator.language || '').toLowerCase()
       return lang.startsWith('zh')
     }
-    const DC_COPY = {
+    type LanguageCopy = { lead: string; groups: Record<string, string>; items: Record<string, [string, string]>; reset: string; close: string; dialog: string; button: string }
+    const DF_COPY: Record<'en' | 'zh', LanguageCopy> = {
       zh: {
         lead: '\u8fd9\u91cc\u7684\u5f00\u5173\u7acb\u5373\u751f\u6548\uff0c\u5e76\u6309\u914d\u7f6e\u6587\u4ef6\u8bb0\u4f4f\u3002',
         groups: {
@@ -2621,7 +2888,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       },
     }
 
-    Object.assign(DC_COPY.zh.items, {
+    Object.assign(DF_COPY.zh.items, {
       reading: ['阅读排版', '舒展段落、标题与引用，保留你的字号'],
       code: ['代码配色', '低饱和语法颜色，保持代码层次'],
       effortBadge: ['推理等级动画', '输入框里用点阵显示当前推理等级'],
@@ -2630,7 +2897,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
       diff: ['差异配色', '新增用蓝色，删除用暖色，保留语法高亮'],
     })
-    Object.assign(DC_COPY.en.items, {
+    Object.assign(DF_COPY.en.items, {
       reading: ['Reading layout', 'Clear paragraphs, headings and quotes at your chosen font size'],
       code: ['Code palette', 'Muted, distinct syntax colours'],
       effortBadge: ['Effort badge', 'Print the reasoning level in dots inside the composer'],
@@ -2640,32 +2907,34 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       diff: ['Diff palette', 'Blue additions and warm deletions, with syntax highlighting intact'],
     })
 
-    Object.assign(DC_COPY.zh.items, {
+    Object.assign(DF_COPY.zh.items, {
       fishFont: ['Maple Mono 字体', '全站换成 Maple Mono NF CN，正文与代码统一字体'],
       fishGlow: ['输入框柔光', '16px 圆角，聚焦时带主题色光晕'],
       fishMotion: ['轻动效', '按钮悬停上浮，界面过渡更柔和'],
       fishCode: ['代码块质感', '圆角描边与行内代码小药丸'],
     })
-    Object.assign(DC_COPY.en.items, {
+    Object.assign(DF_COPY.en.items, {
       fishFont: ['Maple Mono type', 'Use Maple Mono NF CN everywhere, including code'],
       fishGlow: ['Composer glow', '16px radius plus an accent glow on focus'],
       fishMotion: ['Soft motion', 'Buttons lift on hover and surfaces ease between states'],
       fishCode: ['Code surface', 'Rounded code blocks and tinted inline-code pills'],
     })
-    Object.assign(DC_COPY.zh.items, {
+    Object.assign(DF_COPY.zh.items, {
       catppuccin: ['Catppuccin 配色', 'Latte / Mocha 全套背景、文字、边框与强调色'],
-      aurora: ['极光背景', '缓慢流动的渐变光晕，随主题色呼吸'],
+      aurora: ['会话背景', '在欢迎页和聊天记录后面显示所选场景'],
       cursor: ['指针物理', '跟随指针的柔光、输入框微倾斜'],
       textMotion: ['思考与文字动效', '回复浮入、思考块微光、流式文字呼吸感'],
+      hostIcons: ['导航与操作图标', '新会话、搜索、文件夹、复制和发送等按钮使用所选图标风格'],
     })
-    Object.assign(DC_COPY.en.items, {
+    Object.assign(DF_COPY.en.items, {
       catppuccin: ['Catppuccin palette', 'Latte / Mocha backgrounds, text, borders and accents'],
-      aurora: ['Aurora field', 'Slow drifting gradient light that breathes with the accent'],
+      aurora: ['Conversation backdrop', 'Show the selected scene on the welcome page and behind messages'],
       cursor: ['Pointer physics', 'A cursor-following glow and a subtle composer tilt'],
       textMotion: ['Thinking & text motion', 'Replies rise in, reasoning shimmers, streaming text breathes'],
+      hostIcons: ['Navigation & action icons', 'Use the chosen icon style for new chats, search, folders, copy, send and related controls'],
     })
     /** Switch drawn as SVG so the capsule ends and the knob are exact shapes. */
-    function DcSwitchSvg({ value }) {
+    function DfSwitchSvg({ value }: { value: boolean }) {
       const on = value === true
       return h('svg', {
         width: 42,
@@ -2713,13 +2982,14 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     }
 
     /** One settings row: a label on the left and a switch on the right. */
-    function DcSwitch({ label, description, value, disabled, onChange }) {
-      return h('div', { className: 'dc-set-row' }, [
-        h('div', { key: 'text', className: 'dc-set-text' }, [
-          h('span', { key: 'label', className: 'dc-set-label' }, label),
+    function DfSwitch({ icon, label, description, value, disabled, onChange }: { icon: keyof typeof FISH_ICONS; label: string; description?: string; value: boolean; disabled: boolean; onChange(value: boolean): void }) {
+      return h('div', { className: 'df-set-row' }, [
+        h('span', { key: 'icon', className: 'fish-row-icon' }, h(FishIcon, { name: icon })),
+        h('div', { key: 'text', className: 'df-set-text' }, [
+          h('span', { key: 'label', className: 'df-set-label' }, label),
           description === undefined
             ? null
-            : h('span', { key: 'desc', className: 'dc-set-desc' }, description),
+            : h('span', { key: 'desc', className: 'df-set-desc' }, description),
         ]),
         h('button', {
           key: 'switch',
@@ -2728,64 +2998,63 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           disabled,
           'aria-checked': value ? 'true' : 'false',
           'aria-label': label,
-          className: 'dc-switch',
+          className: 'df-switch',
           'data-on': value ? 'true' : undefined,
           onClick: () => onChange(!value),
-        }, h(DcSwitchSvg, { key: 'glyph', value: value === true })),
+        }, h(DfSwitchSvg, { key: 'glyph', value: value === true })),
       ])
     }
 
-    /** The switch list shown inside the sidebar sheet. */
     const FISH_CSS = `
       :root {
         --fish-font: "Maple Mono NF CN", "Maple Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-        --fish-ink: var(--dc-accent, #7cc8ff);
+        --fish-ink: var(--df-accent, #4D6BFE);
       }
-      :root:not(.dc-off-fishfont) body {
+      :root:not(.df-off-fishfont) body {
         font-family: var(--fish-font) !important;
         font-feature-settings: "ss01" 1, "cv01" 1, "liga" 1;
         -webkit-font-smoothing: antialiased;
         text-rendering: optimizeLegibility;
       }
-      :root:not(.dc-off-fishfont) button,
-      :root:not(.dc-off-fishfont) input,
-      :root:not(.dc-off-fishfont) textarea,
-      :root:not(.dc-off-fishfont) select,
-      :root:not(.dc-off-fishfont) [contenteditable="true"] {
+      :root:not(.df-off-fishfont) button,
+      :root:not(.df-off-fishfont) input,
+      :root:not(.df-off-fishfont) textarea,
+      :root:not(.df-off-fishfont) select,
+      :root:not(.df-off-fishfont) [contenteditable="true"] {
         font-family: inherit !important;
       }
-      :root:not(.dc-off-fishfont) code,
-      :root:not(.dc-off-fishfont) pre,
-      :root:not(.dc-off-fishfont) kbd,
-      :root:not(.dc-off-fishfont) samp {
+      :root:not(.df-off-fishfont) code,
+      :root:not(.df-off-fishfont) pre,
+      :root:not(.df-off-fishfont) kbd,
+      :root:not(.df-off-fishfont) samp {
         font-family: var(--fish-font) !important;
       }
-      :root:not(.dc-off-fishfont) p,
-      :root:not(.dc-off-fishfont) li,
-      :root:not(.dc-off-fishfont) blockquote {
+      :root:not(.df-off-fishfont) p,
+      :root:not(.df-off-fishfont) li,
+      :root:not(.df-off-fishfont) blockquote {
         line-height: 1.75;
       }
-      :root:not(.dc-off-fishglow) [data-composer-card] {
+      :root:not(.df-off-fishglow) [data-composer-card] {
         border-radius: 16px !important;
         transition: box-shadow .25s ease, border-color .25s ease;
       }
-      :root:not(.dc-off-fishglow) [data-composer-card]:focus-within {
+      :root:not(.df-off-fishglow) [data-composer-card]:focus-within {
         box-shadow: 0 0 0 1px var(--fish-ink),
                     0 18px 50px -28px var(--fish-ink) !important;
       }
-      :root:not(.dc-off-fishcode) pre {
+      :root:not(.df-off-fishcode) pre {
         border-radius: 12px;
         border: 1px solid color-mix(in srgb, var(--dsw-alias-border-l1, #333) 70%, transparent);
       }
-      :root:not(.dc-off-fishcode) :not(pre) > code {
+      :root:not(.df-off-fishcode) :not(pre) > code {
         background: color-mix(in srgb, var(--dsw-alias-bg-layer-2, #222) 78%, transparent);
         padding: .12em .38em;
         border-radius: 5px;
       }
-      :root:not(.dc-off-fishmotion) button {
+      :root:not(.df-off-fishmotion) button {
         transition: transform .16s ease, box-shadow .16s ease;
       }
-      :root:not(.dc-off-fishmotion) button:hover {
+      :root:not(.df-off-fishmotion) button:hover {
         transform: translateY(-1px);
       }
       ::selection {
@@ -2808,22 +3077,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     `
 
     const FISH_FX_CSS = `
-      :root:not(.dc-off-catppuccin) {
-        --fish-ink: var(--dc-accent, #cba6f7);
-      }
-      :root:not(.dc-off-aurora) body {
-        background-image:
-          radial-gradient(55% 45% at 12% 8%, color-mix(in srgb, var(--dc-accent) 14%, transparent), transparent 70%),
-          radial-gradient(50% 42% at 88% 16%, color-mix(in srgb, #89b4fa 12%, transparent), transparent 70%),
-          radial-gradient(45% 38% at 50% 96%, color-mix(in srgb, #cba6f7 10%, transparent), transparent 72%) !important;
-        background-size: 220% 220%, 220% 220%, 220% 220% !important;
-        background-repeat: no-repeat !important;
-        animation: fish-aurora 26s ease-in-out infinite alternate;
-      }
-      @keyframes fish-aurora {
-        0% { background-position: 0% 0%, 100% 0%, 50% 100%; }
-        100% { background-position: 18% 12%, 82% 20%, 42% 78%; }
-      }
+      body { --fish-ink: var(--df-accent, #4D6BFE); }
       .fish-cursor-glow {
         position: fixed;
         left: 0;
@@ -2836,23 +3090,25 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         z-index: 1;
         opacity: 0;
         transition: opacity .35s ease;
-        background: radial-gradient(circle, color-mix(in srgb, var(--dc-accent, #cba6f7) 18%, transparent), transparent 66%);
+        background: radial-gradient(circle, color-mix(in srgb, var(--df-accent, #4D6BFE) 18%, transparent), transparent 66%);
         will-change: transform;
       }
-      :root:not(.dc-off-cursor) .fish-cursor-glow { opacity: .55; }
-      :root:not(.dc-off-cursor) [data-composer-card] {
+      .fish-cursor-glow[data-active] { opacity: .55; }
+      :root:not(.df-off-cursor) [data-composer-card] {
         transition: transform .2s ease, box-shadow .25s ease;
-        will-change: transform;
       }
-      :root:not(.dc-off-textmotion) [data-chat-flow-kind="assistant-step"] {
+      [data-composer-card].fish-tilting {
+        transform: perspective(900px) rotateX(var(--fish-tilt-x)) rotateY(var(--fish-tilt-y));
+      }
+      :root:not(.df-off-textmotion) [data-chat-flow-kind="assistant-step"] {
         animation: fish-rise .4s cubic-bezier(.16,1,.3,1) both;
       }
       @keyframes fish-rise {
         from { opacity: 0; transform: translateY(7px); }
         to { opacity: 1; transform: none; }
       }
-      :root:not(.dc-off-textmotion) [data-chat-group-part="reasoning"] {
-        border-left: 2px solid color-mix(in srgb, var(--dc-accent, #cba6f7) 45%, transparent);
+      :root:not(.df-off-textmotion) [data-chat-group-part="reasoning"] {
+        border-left: 2px solid color-mix(in srgb, var(--df-accent, #4D6BFE) 45%, transparent);
         padding-left: 10px;
         animation: fish-breathe 4.5s ease-in-out infinite;
       }
@@ -2866,21 +3122,355 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       }
     `
 
-    function DcSettingsPage() {
-      const copy = dcUsesChinese() ? DC_COPY.zh : DC_COPY.en
-      const settings = useDcSettings()
+    const FISH_STUDIO_CSS = `
+.fish-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+  opacity: .18;
+  mask-image: linear-gradient(90deg, #000, rgb(0 0 0 / .38) 28% 72%, #000);
+}
+.fish-backdrop[data-home="true"] {
+  z-index: -2;
+  opacity: .43;
+  mask-image: radial-gradient(ellipse at 45% 46%, rgb(0 0 0 / .27) 12%, rgb(0 0 0 / .6) 58%, #000 96%);
+}
+body[data-ds-dark-theme] .fish-backdrop { opacity: .34; }
+body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { opacity: .82; }
+[data-conversation-content]:has(.fish-backdrop[data-home="false"]) [data-conversation-scroll] {
+  position: relative;
+}
+.fish-backdrop > svg, .fish-cover > svg, .fish-card-art > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.fish-backdrop { --fish-cycle: 34s; --fish-shower: 5s; }
+html[data-fish-pace="flow"] .fish-backdrop { --fish-cycle: 14s; --fish-shower: 1.8s; }
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-fish-pace="still"]) .fish-backdrop .fish-current { animation: fish-current var(--fish-cycle) ease-in-out infinite alternate; }
+  html:not([data-fish-pace="still"]) .fish-backdrop .fish-curtain { animation: fish-curtain var(--fish-cycle) ease-in-out infinite alternate; }
+  html:not([data-fish-pace="still"]) .fish-backdrop .fish-revolve { animation: fish-revolve calc(var(--fish-cycle) * 1.4) linear infinite; }
+  html:not([data-fish-pace="still"]) .fish-backdrop .fish-sand { animation: fish-sand var(--fish-cycle) ease-in-out infinite alternate; }
+  html:not([data-fish-pace="still"]) .fish-backdrop .fish-rainfall { animation: fish-rainfall var(--fish-shower) linear infinite; }
+  html:not([data-fish-pace="still"]) .fish-backdrop .fish-pond-ring { animation: fish-pond-ring calc(var(--fish-cycle) * .42) ease-out infinite; }
+  html[data-fish-paused] .fish-backdrop g { animation-play-state: paused !important; }
+}
+@keyframes fish-current { from { transform: translate(-5px, -2px); } to { transform: translate(7px, 3px); } }
+@keyframes fish-curtain { from { transform: translate(-4px, 2px) skewX(-3deg); opacity: .76; } to { transform: translate(7px, -6px) skewX(5deg); opacity: 1; } }
+@keyframes fish-revolve { to { transform: rotate(360deg); } }
+@keyframes fish-sand { from { transform: translate(-7px, 2px); } to { transform: translate(7px, -2px); } }
+@keyframes fish-rainfall { 0% { transform: translate(5px,-14px); opacity: 0; } 18%, 78% { opacity: .7; } 100% { transform: translate(-6px,17px); opacity: 0; } }
+@keyframes fish-pond-ring { 0% { transform: scale(.76); opacity: 0; } 24% { opacity: .9; } 100% { transform: scale(1.13); opacity: 0; } }
+
+.fish-studio, .df-sheet-panel {
+  --fish-panel: var(--dsw-alias-bg-base, #f5f7f5);
+  --fish-label: var(--dsw-alias-label-primary, #293936);
+  --fish-muted: var(--dsw-alias-label-secondary, #53645f);
+  --fish-edge: color-mix(in srgb, var(--fish-label) 17%, transparent);
+  --fish-well: color-mix(in srgb, var(--fish-label) 5%, var(--fish-panel));
+  --fish-selected: color-mix(in srgb, var(--df-accent, #4D6BFE) 12%, var(--fish-panel));
+}
+.df-sheet-panel {
+  width: min(526px, calc(100vw - 28px));
+  max-height: min(88dvh, 808px);
+  bottom: max(14px, min(7vh, 64px));
+  background: var(--fish-panel);
+  border: 1px solid var(--fish-edge);
+  box-shadow: 0 22px 64px rgb(15 30 40 / .27), 0 3px 14px rgb(15 30 40 / .13);
+  box-sizing: border-box;
+}
+.df-sheet-head { flex: none; padding: 12px 17px; }
+.df-sheet-title { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; letter-spacing: -.02em; }
+.fish-brand {
+  flex: none;
+  width: 27px;
+  height: 27px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background: linear-gradient(145deg, #718DFF, #4D6BFE 48%, #243EAA);
+  box-shadow: inset 0 0 0 1px rgb(191 212 255 / .42);
+}
+.fish-logo { display: block; width: 100%; height: 100%; }
+.df-foot-button { gap: 8px; }
+.df-foot-button .fish-brand { width: 22px; height: 22px; border-radius: 7px; }
+.fish-foot-scene { display: inline-flex; margin-inline-start: auto; color: var(--df-accent); }
+.df-sheet-close {
+  display: inline-grid; place-items: center; width: 28px; height: 28px;
+  border: 1px solid var(--fish-edge); border-radius: 50%; color: var(--fish-muted);
+}
+.df-sheet-body { padding: 0; overscroll-behavior: contain; min-height: 0; }
+.fish-studio {
+  box-sizing: border-box; max-width: 740px; width: 100%; min-width: 0; margin: 0;
+  padding: 14px 16px 12px; color: var(--fish-label); container-type: inline-size;
+}
+.fish-studio *, .fish-studio *::before, .fish-studio *::after { box-sizing: border-box; }
+.fish-studio fieldset { min-inline-size: 0; border: 0; padding: 0; margin: 0; }
+.fish-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+.fish-icon { display: inline-block; flex: none; vertical-align: middle; }
+.fish-icon-tone { fill: color-mix(in srgb, var(--fish-second-ink, #78bea9) 66%, currentColor); opacity: .52; }
+html[data-fish-icons="line"] .fish-icon-tone { display: none; }
+.fish-cover {
+  position: relative; isolation: isolate; overflow: hidden; height: clamp(104px, 24cqi, 154px);
+  border-radius: 13px; color: #fff; background: #133b43;
+}
+.fish-cover > svg { position: absolute; inset: 0; }
+.fish-cover::after {
+  position: absolute; content: ""; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, rgb(7 19 28 / .79), rgb(7 19 28 / .43) 43%, transparent 77%);
+}
+.fish-cover-copy { position: absolute; z-index: 1; inset-inline: 17px; bottom: 13px; }
+.fish-cover-kicker {
+  display: block; margin: 0 0 4px; font: 600 9px/1.2 var(--fish-font, monospace);
+  letter-spacing: .16em; text-transform: uppercase; color: #e3eceb;
+}
+.fish-cover h2 {
+  margin: 0; color: #fffaf1; font: 500 clamp(23px, 5.8cqi, 36px)/1.13 "Baskervville", "Songti SC", Georgia, serif;
+  letter-spacing: -.02em;
+}
+.fish-cover p { margin: 5px 0 0; font-size: 11px; color: #edf1ef; }
+.fish-swatches { position: absolute; z-index: 1; right: 12px; bottom: 12px; display: flex; border: 1px solid rgb(255 255 255 / .5); border-radius: 3px; overflow: hidden; }
+.fish-swatches i { width: 10px; height: 7px; }
+.fish-tabs { display: flex; gap: 16px; margin: 10px 0 13px; border-bottom: 1px solid var(--fish-edge); }
+.fish-tabs button {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 34px; padding: 3px 3px 7px; background: none; border: 0; color: var(--fish-muted);
+  font: inherit; font-size: 12px; cursor: pointer;
+}
+.fish-tabs button[aria-pressed="true"] { font-weight: 650; color: var(--df-accent); }
+.fish-tabs button[aria-pressed="true"]::after { position: absolute; content: ""; inset: auto 1px -1px; height: 2px; border-radius: 2px; background: currentColor; }
+.fish-scene-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.fish-scene-card {
+  position: relative; min-width: 0; display: flex; flex-direction: column; padding: 3px; overflow: hidden;
+  border-radius: 10px; border: 1px solid var(--fish-edge); background: var(--fish-panel); cursor: pointer;
+}
+.fish-card-art { position: relative; display: block; overflow: hidden; aspect-ratio: 2.46; border-radius: 6px; }
+.fish-card-label {
+  display: flex; align-items: center; gap: 6px; min-height: 29px; padding: 4px 4px 1px;
+  color: var(--fish-label); font-size: 11px; font-weight: 600; line-height: 1.25;
+}
+.fish-card-label svg { color: var(--fish-muted); }
+.fish-picked {
+  position: absolute; display: grid; place-items: center; right: 5px; top: 5px; width: 18px; height: 18px;
+  border: 1px solid rgb(0 0 0 / .2); border-radius: 50%; background: #f8fff9; color: #17453e;
+}
+.fish-scene-card:has(input:checked) { background: var(--fish-selected); border-color: var(--df-accent); box-shadow: inset 0 0 0 .5px var(--df-accent); }
+.fish-scene-card:has(input:checked) .fish-card-label svg { color: var(--df-accent); }
+.fish-studio :is(button, .fish-segment, .fish-scene-card):focus-visible,
+.fish-studio label:has(input:focus-visible), .df-sheet-close:focus-visible {
+  outline: 2px solid var(--df-accent, #4D6BFE); outline-offset: 2px;
+}
+@media (hover: hover) {
+  .fish-scene-card:not(:has(:disabled)):hover { border-color: var(--df-accent); }
+  .fish-segment:hover, .fish-tabs button:hover { color: var(--fish-label); }
+}
+.fish-controls {
+  margin-top: 12px; padding: 0 11px; border: 1px solid var(--fish-edge); border-radius: 11px;
+  background: color-mix(in srgb, var(--fish-well) 35%, var(--fish-panel));
+}
+.fish-controls > :is(fieldset,.df-set-row) + :is(fieldset,.df-set-row) { border-top: 1px solid var(--fish-edge); }
+.fish-inks { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.fish-ink-option {
+  position: relative; display: grid; place-items: center; width: 24px; height: 26px; cursor: pointer;
+}
+.fish-ink-option::before {
+  content: ''; width: 16px; height: 16px; border-radius: 50%; background: var(--fish-swatch);
+}
+.fish-ink-option:has(input:checked)::before { outline: 1.5px solid var(--fish-swatch); outline-offset: 2px; }
+.fish-custom-color { position: relative; cursor: pointer; font-size: 11px; color: var(--fish-label);
+  padding: 3px 6px; border: 1px solid var(--fish-edge); border-radius: 5px; }
+.fish-custom-color input { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; opacity: 0; }
+.fish-controls .df-set-row, .fish-controls-row { min-height: 40px; padding: 5px 0; }
+.fish-controls .df-set-row { gap: 8px; }
+.fish-controls .df-set-desc { display: none; }
+.fish-controls-row, .fish-control-label, .fish-segment, .df-set-reset, .fish-row-icon { display: inline-flex; align-items: center; }
+.fish-controls-row { display: flex; justify-content: space-between; gap: 6px; }
+.fish-control-label, .fish-controls .df-set-label { font-size: 12px; font-weight: 550; }
+.fish-control-label { gap: 8px; }
+.fish-control-label > svg, .fish-row-icon { color: var(--df-accent); }
+.fish-segment-track { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 2px; background: var(--fish-well); border-radius: 7px; }
+.fish-segment {
+  position: relative; justify-content: center; gap: 4px; padding: 4px 7px; min-height: 24px; border: 1px solid transparent;
+  border-radius: 5px; color: var(--fish-muted); cursor: pointer; font-size: 11px; line-height: 1.15;
+}
+.fish-segment:has(input:checked) { border-color: var(--fish-edge); background: var(--fish-panel); color: var(--df-accent); font-weight: 650; }
+.fish-studio fieldset:disabled .fish-segment, .fish-studio fieldset:disabled .fish-scene-card { cursor: default; opacity: .65; }
+.fish-details .df-set-group { margin: 0 0 14px; padding: 0 0 7px; }
+.fish-details .df-set-group-title { margin: 12px 0 3px; color: var(--df-accent); font-weight: 650; }
+.fish-details .df-set-row { gap: 10px; padding: 7px 0; }
+.fish-details .fish-row-icon { justify-content: center; width: 29px; height: 29px; border-radius: 8px; background: var(--fish-selected); }
+.fish-studio .df-set-label { color: var(--fish-label); }
+.fish-studio .df-set-desc, .fish-studio .df-set-note { color: var(--fish-muted); }
+.fish-studio .df-switch svg { width: 34px; height: 20px; }
+.fish-studio .df-switch[data-on="true"] rect { fill: var(--df-accent) !important; stroke: var(--df-accent) !important; }
+.fish-studio .df-set-footer { padding-top: 11px; gap: 8px; }
+.fish-studio .df-set-reset { gap: 5px; padding: 4px 0; font-size: 11px; border: 0; background: transparent; color: var(--fish-muted); }
+.fish-studio .df-set-note { font-size: 10px; }
+.fish-studio .df-settings-status { margin: 0 0 9px; }
+@container (max-width: 390px) {
+  .fish-scene-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .fish-card-art { aspect-ratio: 2.7; }
+  .fish-control-label { gap: 5px; }
+  .fish-segment { padding-inline: 5px; }
+}
+@container (max-width: 300px) {
+  .fish-controls-row { flex-wrap: wrap; padding-block: 7px; }
+  .fish-swatches, .fish-segment svg { display: none; }
+}
+@media (max-height: 540px) {
+  .df-sheet-panel { bottom: 8px; max-height: calc(100dvh - 16px); }
+}
+`
+
+    function attachPointerPhysics() {
+      const media = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)')
+      let glow: HTMLDivElement | null = null
+      let card: HTMLElement | null = null
+      let frame = 0
+      let x = 0, y = 0, targetX = 0, targetY = 0
+      const clearCard = () => {
+        if (!card) return
+        card.classList.remove('fish-tilting')
+        card.style.removeProperty('--fish-tilt-x')
+        card.style.removeProperty('--fish-tilt-y')
+        card = null
+      }
+      const paint = () => {
+        x += (targetX - x) * .22
+        y += (targetY - y) * .22
+        glow.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)'
+        frame = Math.abs(targetX - x) + Math.abs(targetY - y) > .6 ? requestAnimationFrame(paint) : 0
+      }
+      const move = (event: PointerEvent) => {
+        if (event.pointerType === 'touch') return
+        targetX = event.clientX
+        targetY = event.clientY
+        if (!glow.hasAttribute('data-active')) {
+          x = targetX
+          y = targetY
+          glow.setAttribute('data-active', '')
+        }
+        if (!frame) frame = requestAnimationFrame(paint)
+        const next = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-composer-card]') : null
+        if (next !== card) { clearCard(); card = next }
+        if (!card) return
+        const rect = card.getBoundingClientRect()
+        if (!rect.width || !rect.height) return
+        card.style.setProperty('--fish-tilt-x', ((.5 - (targetY - rect.top) / rect.height) * 1.6).toFixed(2) + 'deg')
+        card.style.setProperty('--fish-tilt-y', (((targetX - rect.left) / rect.width - .5) * 1.6).toFixed(2) + 'deg')
+        card.classList.add('fish-tilting')
+      }
+      const leave = () => {
+        cancelAnimationFrame(frame)
+        frame = 0
+        glow?.removeAttribute('data-active')
+        clearCard()
+      }
+      const stop = () => {
+        leave()
+        window.removeEventListener('pointermove', move)
+        document.documentElement.removeEventListener('pointerleave', leave)
+        window.removeEventListener('blur', leave)
+        glow?.remove()
+        glow = null
+      }
+      const sync = () => {
+        const enabled = dfSettings.cursor && media.matches && !document.hidden
+        if (enabled === Boolean(glow)) return
+        if (!enabled) { stop(); return }
+        glow = document.createElement('div')
+        glow.className = 'fish-cursor-glow'
+        glow.setAttribute('aria-hidden', 'true')
+        document.body.append(glow)
+        window.addEventListener('pointermove', move, { passive: true })
+        document.documentElement.addEventListener('pointerleave', leave)
+        window.addEventListener('blur', leave)
+      }
+      const unsubscribe = dfSubscribeSettings(sync)
+      media.addEventListener('change', sync)
+      document.addEventListener('visibilitychange', sync)
+      sync()
+      return () => {
+        unsubscribe()
+        media.removeEventListener('change', sync)
+        document.removeEventListener('visibilitychange', sync)
+        stop()
+      }
+    }
+
+    function FishScenePicker({ state, disabled, zh }: { state: FishSettings; disabled: boolean; zh: boolean }) {
+      const group = React.useId()
+      return h('fieldset', { className: 'fish-scene-picker', disabled },
+        h('legend', { className: 'fish-sr' }, zh ? '选择场景' : 'Choose a scene'),
+        h('div', { className: 'fish-scene-grid' }, (Object.entries(SCENES) as [SceneId, FishScene][]).map(([id, scene]) =>
+          h('label', { className: 'fish-scene-card', key: id },
+            h('input', { type: 'radio', className: 'fish-sr', name: group, value: id, checked: state.scene === id,
+              onChange: () => dfSetSetting('scene', id) }),
+            h('span', { className: 'fish-card-art' }, h(FishPlate, { scene: id }),
+              state.scene === id && h('span', { className: 'fish-picked' }, h(FishIcon, { name: 'check', size: 13 }))),
+            h('span', { className: 'fish-card-label' }, h(FishIcon, { name: scene.icon, size: 16 }), zh ? scene.zh : scene.en)))))
+    }
+
+    function FishAccentPicker({ value, disabled, zh }: { value: string; disabled: boolean; zh: boolean }) {
+      const input = React.useRef<HTMLInputElement>(null)
+      const group = React.useId()
+      const title = zh ? '强调色' : 'Accent color'
+      // A native color dialog can emit many input events while scrubbing. Persist its committed change.
+      React.useEffect(() => {
+        const node = input.current
+        if (!node) return
+        const commit = () => dfSetSetting('accentColor', node.value.toUpperCase())
+        node.addEventListener('change', commit)
+        return () => node.removeEventListener('change', commit)
+      }, [])
+      React.useEffect(() => { if (input.current) input.current.value = value }, [value])
+      return h('fieldset', { className: 'fish-accent-picker', disabled },
+        h('legend', { className: 'fish-sr' }, title),
+        h('div', { className: 'fish-controls-row' },
+          h('span', { className: 'fish-control-label', 'aria-hidden': true }, h(FishIcon, { name: 'catppuccin' }), title),
+          h('div', { className: 'fish-inks' },
+            ACCENT_SWATCHES.map(([hex, cn, en]) => h('label', { key: hex, className: 'fish-ink-option',
+              style: { '--fish-swatch': hex }, title: zh ? cn : en },
+              h('input', { type: 'radio', className: 'fish-sr', name: group, value: hex, 'aria-label': zh ? cn : en,
+                checked: value.toUpperCase() === hex, onChange: () => dfSetSetting('accentColor', hex) }))),
+            h('label', { className: 'fish-custom-color' }, zh ? '自选' : 'Custom',
+              h('input', { type: 'color', ref: input, defaultValue: value, 'aria-label': zh ? '自选强调色' : 'Custom accent color' })))))
+    }
+
+    function FishSegments({ name, label, icon, value, options, disabled }) {
+      const group = React.useId()
+      return h('fieldset', { className: 'fish-segments', disabled },
+        h('legend', { className: 'fish-sr' }, label),
+        h('div', { className: 'fish-controls-row' },
+          h('span', { className: 'fish-control-label', 'aria-hidden': true }, h(FishIcon, { name: icon }), label),
+          h('div', { className: 'fish-segment-track' }, options.map(([id, title, glyph]) =>
+            h('label', { key: id, className: 'fish-segment' },
+              h('input', { type: 'radio', className: 'fish-sr', name: group, value: id, checked: value === id,
+                onChange: () => dfSetSetting(name, id) }),
+              h(FishIcon, { name: glyph, size: 14 }), title)))))
+    }
+
+    function DfSettingsPage() {
+      const copy = dfUsesChinese() ? DF_COPY.zh : DF_COPY.en
+      const settings = useDfSettings()
       const state = settings.values
+      const [tab, setTab] = React.useState('scenes')
+      const scene = SCENES[state.scene]
       const disabled = settings.status !== 'ready' || !settings.writable || settings.pending
-      const update = key => value => dcSetSetting(key, value)
-      const reset = () => dcWrite?.(DC_DEFAULT_SETTINGS)
-      const group = (title, children) => h('section', { key: title, className: 'dc-set-group' }, [
-        h('h3', { key: 'title', className: 'dc-set-group-title' }, title),
+      const update = (key: keyof FishSettings) => (value: boolean) => dfSetSetting(key, value)
+      const reset = () => dfWrite?.(DF_DEFAULT_SETTINGS)
+      const group = (title, children) => h('section', { key: title, className: 'df-set-group' }, [
+        h('h3', { key: 'title', className: 'df-set-group-title' }, title),
         ...children,
       ])
-      const item = (key) => {
+      const item = (key: typeof DF_FLAGS[number]) => {
         const row = copy.items[key]
-        return h(DcSwitch, {
+        return h(DfSwitch, {
           key: key,
+          icon: key === 'aurora' ? 'gallery' : key === 'hostIcons' ? 'duotone' : key,
           label: row[0],
           description: row[1],
           value: state[key],
@@ -2888,17 +3478,15 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           onChange: update(key),
         })
       }
-      const zh = dcUsesChinese()
+      const zh = dfUsesChinese()
       const status = settings.error
         ? (zh ? '保存未完成。如果刚更新过插件，请完整退出 DSH 重启后再试。' : 'Could not save. If you just updated the plugin, quit and reopen DSH, then try again.')
         : settings.status === 'loading' ? (zh ? '正在读取主题设置…' : 'Loading theme preferences…')
         : settings.status !== 'ready' ? (zh ? '此宿主暂未提供主题设置。' : 'Theme preferences are unavailable on this host.')
         : !settings.writable ? (zh ? '此配置只读。' : 'These preferences are read-only.')
         : settings.pending ? (zh ? '正在保存…' : 'Saving…') : ''
-      return h('div', { className: 'dc-set' }, [
-        h('p', { key: 'autosave', className: 'dc-settings-status' }, zh ? '更改立即生效并自动保存。' : 'Changes apply immediately and save automatically.'),
-        status ? h('p', { key: 'status', className: 'dc-settings-status', role: settings.error ? 'alert' : 'status' }, status) : null,
-        group(zh ? '界面与阅读' : 'Interface & reading', [item('reading'), item('code')]),
+      const details = [
+        group(zh ? '阅读' : 'Reading', [item('reading'), item('code')]),
         group(copy.groups.hero, [
           item('hero'), item('field'), item('wave'), item('ripple'),
         ]),
@@ -2917,52 +3505,77 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         group(zh ? 'Fish 字体与质感' : 'Fish finish', [
           item('fishFont'), item('fishGlow'), item('fishMotion'), item('fishCode'),
         ]),
-        group(zh ? 'Catppuccin 与动效' : 'Catppuccin & motion', [
-          item('catppuccin'), item('aurora'), item('cursor'), item('textMotion'),
+        group(zh ? '配色与交互' : 'Color & interaction', [
+          item('catppuccin'), item('hostIcons'), item('cursor'), item('textMotion'),
         ]),
-        h('div', { key: 'footer', className: 'dc-set-footer' }, [
-          h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', disabled, onClick: reset }, copy.reset),
-          h('span', { key: 'note', className: 'dc-set-note' }, 'Deep Fish UI · 0.2.0'),
-        ]),
-      ])
+      ]
+      const tabButton = (id, label, icon) => h('button', { type: 'button', 'aria-pressed': tab === id,
+        onClick: () => setTab(id) }, h(FishIcon, { name: icon, size: 16 }), label)
+      return h('div', { className: 'df-set fish-studio' },
+        h('div', { className: 'fish-cover', style: { backgroundColor: scene.colors[0] } },
+          h(FishPlate, { scene: state.scene }),
+          h('div', { className: 'fish-cover-copy' },
+            h('span', { className: 'fish-cover-kicker' }, zh ? scene.en : 'Selected scene'),
+            h('h2', null, zh ? scene.zh : scene.en),
+            h('p', null, scene.caption[zh ? 1 : 0])),
+          h('div', { className: 'fish-swatches', 'aria-hidden': true }, scene.colors.map(color =>
+            h('i', { key: color, style: { background: color } })))),
+        h('div', { className: 'fish-tabs', role: 'group', 'aria-label': zh ? '外观设置' : 'Appearance settings' },
+          tabButton('scenes', zh ? '场景' : 'Scenes', 'gallery'),
+          tabButton('details', zh ? '界面细节' : 'Interface details', 'sliders')),
+        status && h('p', { className: 'df-settings-status', role: settings.error ? 'alert' : 'status' }, status),
+        tab === 'scenes' ? h('div', { className: 'fish-scenes' },
+          h(FishScenePicker, { state, disabled, zh }),
+          h('div', { className: 'fish-controls' },
+            h(FishAccentPicker, { value: state.accentColor, disabled, zh }),
+            item('aurora'),
+            h(FishSegments, { name: 'sceneMotion', label: zh ? '背景动效' : 'Scene motion', icon: 'wave',
+              value: state.sceneMotion, disabled: disabled || !state.aurora,
+              options: [['still', zh ? '静止' : 'Still', 'still'], ['calm', zh ? '舒缓' : 'Calm', 'wave'], ['flow', zh ? '流动' : 'Flow', 'fishMotion']] }),
+            h(FishSegments, { name: 'iconStyle', label: zh ? '图标风格' : 'Icon style', icon: 'duotone',
+              value: state.iconStyle, disabled, options: [['line', zh ? '线描' : 'Outline', 'line'], ['duotone', zh ? '双色' : 'Duotone', 'duotone']] })))
+          : h('div', { className: 'fish-details' }, details),
+        h('div', { className: 'df-set-footer' },
+          h('button', { type: 'button', className: 'df-set-reset', disabled, onClick: reset }, h(FishIcon, { name: 'reset', size: 13 }), copy.reset),
+          h('span', { className: 'df-set-note' }, zh ? '随当前配置自动保存' : 'Autosaved to this profile')))
     }
 
     // ----------------------------------------------------------- sidebar entry
     /** Sheet state shared by the sidebar button and the panel itself. */
-    let dcSheetOpen = false
-    const dcSheetListeners = new Set()
-    function dcSetSheetOpen(next) {
-      dcSheetOpen = next
-      dcSheetListeners.forEach((listener) => listener())
+    let dfSheetOpen = false
+    const dfSheetListeners = new Set<() => void>()
+    function dfSetSheetOpen(next: boolean) {
+      dfSheetOpen = next
+      dfSheetListeners.forEach((listener) => listener())
     }
-    function useDcSheet() {
-      const [open, setOpen] = React.useState(dcSheetOpen)
+    function useDfSheet() {
+      const [open, setOpen] = React.useState(dfSheetOpen)
       React.useEffect(() => {
-        const listener = () => setOpen(dcSheetOpen)
-        dcSheetListeners.add(listener)
-        return () => { dcSheetListeners.delete(listener) }
+        const listener = () => setOpen(dfSheetOpen)
+        dfSheetListeners.add(listener)
+        return () => { dfSheetListeners.delete(listener) }
       }, [])
       return open
     }
-    let dcReactDOM = null
+    let dfReactDOM: typeof import('react-dom') | null = null
     try {
-      dcReactDOM = require('react-dom')
+      dfReactDOM = require('react-dom')
     } catch (error) {
-      dcReactDOM = null
+      dfReactDOM = null
     }
 
     /** The floating settings sheet, portalled to the body when react-dom is around. */
-    function DcSheet() {
-      const open = useDcSheet()
-      const panelRef = React.useRef(null)
+    function DfSheet() {
+      const open = useDfSheet()
+      const panelRef = React.useRef<HTMLDivElement>(null)
       React.useEffect(() => {
         if (!open) return undefined
         const previousFocus = document.activeElement
         const panel = panelRef.current
-        const focusable = () => panel === null ? [] : [...panel.querySelectorAll('button:not(:disabled), [href], [tabindex="0"]')]
+        const focusable = () => panel === null ? [] : [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input:checked:not(:disabled), input[type="color"]:not(:disabled), [href], [tabindex="0"]')]
         ;(focusable()[0] || panel)?.focus()
-        const onKeyDown = event => {
-          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dcSetSheetOpen(false) }
+        const onKeyDown = (event: KeyboardEvent) => {
+          if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dfSetSheetOpen(false) }
           if (event.key !== 'Tab') return
           const items = focusable()
           const first = items[0] || panel
@@ -2980,52 +3593,29 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         }
       }, [open])
       if (!open) return null
-      const panel = h('div', { key: 'panel', className: 'dc-sheet-panel', ref: panelRef, role: 'dialog', 'aria-modal': 'true', tabIndex: -1, 'aria-label': dcUsesChinese() ? DC_COPY.zh.dialog : DC_COPY.en.dialog }, [
-        h('div', { key: 'head', className: 'dc-sheet-head' }, [
-          h('span', { key: 'title', className: 'dc-sheet-title' }, 'Deep Fish UI'),
+      const panel = h('div', { key: 'panel', className: 'df-sheet-panel', ref: panelRef, role: 'dialog', 'aria-modal': 'true', tabIndex: -1, 'aria-label': dfUsesChinese() ? DF_COPY.zh.dialog : DF_COPY.en.dialog }, [
+        h('div', { key: 'head', className: 'df-sheet-head' }, [
+          h('span', { key: 'title', className: 'df-sheet-title' }, h('span', { className: 'fish-brand' }, h(FishBrand)), 'Deep Fish UI'),
           h('button', {
             key: 'close',
             type: 'button',
-            className: 'dc-sheet-close',
-            'aria-label': dcUsesChinese() ? DC_COPY.zh.close : DC_COPY.en.close,
-            onClick: () => dcSetSheetOpen(false),
-          }, '\u00d7'),
+            className: 'df-sheet-close',
+            'aria-label': dfUsesChinese() ? DF_COPY.zh.close : DF_COPY.en.close,
+            onClick: () => dfSetSheetOpen(false),
+          }, h(FishIcon, { name: 'close', size: 16 })),
         ]),
-        h('div', { key: 'body', className: 'dc-sheet-body' }, h(DcSettingsPage)),
+        h('div', { key: 'body', className: 'df-sheet-body' }, h(DfSettingsPage)),
       ])
       const scrim = h('div', {
         key: 'scrim',
-        className: 'dc-sheet-scrim',
-        onClick: () => dcSetSheetOpen(false),
+        className: 'df-sheet-scrim',
+        onClick: () => dfSetSheetOpen(false),
       })
-      const both = h('div', { className: 'dc-sheet-root' }, [scrim, panel])
-      if (dcReactDOM !== null && typeof dcReactDOM.createPortal === 'function') {
-        return dcReactDOM.createPortal(both, document.body)
+      const both = h('div', { className: 'df-sheet-root' }, [scrim, panel])
+      if (dfReactDOM !== null && typeof dfReactDOM.createPortal === 'function') {
+        return dfReactDOM.createPortal(both, document.body)
       }
       return both
-    }
-
-    /** Nine-dot glyph used by the sidebar button and its active state. */
-    function DcSettingsIcon({ size = 16, active }) {
-      const unit = size / 16
-      const points = [
-        [3, 3], [8, 3], [13, 3],
-        [3, 8], [8, 8], [13, 8],
-        [3, 13], [8, 13], [13, 13],
-      ]
-      return h('svg', {
-        viewBox: '0 0 16 16',
-        width: size,
-        height: size,
-        'aria-hidden': 'true',
-        style: { display: 'block' },
-      }, points.map((point, index) => h('circle', {
-        key: index,
-        cx: point[0],
-        cy: point[1],
-        r: 1.35 * unit,
-        fill: active ? 'var(--dc-accent)' : 'currentColor',
-      })))
     }
 
     /**
@@ -3035,12 +3625,12 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
      * soft pool around the pointer, clipped to the button, and fades away when the pointer
      * leaves. Dots never move; only their brightness changes.
      */
-    function DcSidebarAction({ wide }) {
-      const open = useDcSheet()
-      const { values } = useDcSettings()
+    function DfSidebarAction({ wide }: { wide: boolean }) {
+      const open = useDfSheet()
+      const { values } = useDfSettings()
       const showDots = values.sidebarDots !== false
       const showRail = values.sidebarRail !== false
-      const canvasRef = React.useRef(null)
+      const canvasRef = React.useRef<HTMLCanvasElement>(null)
       React.useEffect(() => {
         if (!showDots && !showRail) return
         const canvas = canvasRef.current
@@ -3081,7 +3671,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
             return
           }
           const radius = 64
-          const accent = (getComputedStyle(button).getPropertyValue('--dc-accent') || '').trim() || '#7aa4ff'
+          const accent = (getComputedStyle(button).getPropertyValue('--df-accent') || '').trim() || '#7aa4ff'
           context.fillStyle = accent
           if (showDots) for (let y = 3; y < height; y += 4) {
             for (let x = 3; x < width; x += 4) {
@@ -3171,22 +3761,24 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           state.live = false
         }
       }, [showDots, showRail])
-      return h('div', { className: 'dc-foot' }, [
+      return h('div', { className: 'df-foot' }, [
         h('button', {
           key: 'button',
           type: 'button',
-          className: 'dc-foot-button',
+          className: 'df-foot-button',
           title: 'Deep Fish UI',
-          'aria-label': dcUsesChinese() ? DC_COPY.zh.button : DC_COPY.en.button,
-          onClick: () => dcSetSheetOpen(!dcSheetOpen),
+          'aria-label': dfUsesChinese() ? DF_COPY.zh.button : DF_COPY.en.button,
+          onClick: () => dfSetSheetOpen(!dfSheetOpen),
         }, [
           showDots || showRail
-            ? h('canvas', { key: 'dots', ref: canvasRef, className: 'dc-foot-dots', 'aria-hidden': 'true' })
+            ? h('canvas', { key: 'dots', ref: canvasRef, className: 'df-foot-dots', 'aria-hidden': 'true' })
             : null,
-          h(DcSettingsIcon, { key: 'icon', size: 16, active: open }),
-          wide ? h('span', { key: 'label', className: 'dc-foot-label' }, 'Deep Fish UI') : null,
+          h('span', { key: 'icon', className: 'fish-brand' }, h(FishBrand)),
+          wide ? h('span', { key: 'label', className: 'df-foot-label' }, 'Deep Fish UI') : null,
+          wide ? h('span', { key: 'scene', className: 'fish-foot-scene', title: dfUsesChinese() ? SCENES[values.scene].zh : SCENES[values.scene].en },
+            h(FishIcon, { name: SCENES[values.scene].icon, size: 16 })) : null,
         ]),
-        h(DcSheet, { key: 'sheet' }),
+        h(DfSheet, { key: 'sheet' }),
       ])
     }
 
@@ -3194,18 +3786,25 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     return {
       inject: ['slots'],
       apply(ctx) {
-        dcPlaySplash()
+        dfPlaySplash()
         ctx.effect(() => {
-          dcMounted = true
-          dcApplySettings()
+          dfMounted = true
+          const visible = () => document.documentElement.toggleAttribute('data-fish-paused', document.hidden)
+          document.addEventListener('visibilitychange', visible)
+          visible()
+          dfApplySettings()
           return () => {
-            dcMounted = false
-            dcWrite = null
-            dcSetSheetOpen(false)
-            for (const className of Object.values(DC_OFF_CLASS)) document.documentElement.classList.remove(className)
-            for (const dispose of dcThemeLayers.values()) dispose()
-            dcThemeLayers.clear()
-            dcTheme = null
+            dfMounted = false
+            dfWrite = null
+            dfSetSheetOpen(false)
+            for (const className of Object.values(DF_OFF_CLASS)) document.documentElement.classList.remove(className)
+            delete document.documentElement.dataset.fishPace
+            delete document.documentElement.dataset.fishIcons
+            document.removeEventListener('visibilitychange', visible)
+            document.documentElement.removeAttribute('data-fish-paused')
+            for (const dispose of dfThemeLayers.values()) dispose()
+            dfThemeLayers.clear()
+            dfTheme = null
           }
         }, 'dsh-fish-ui: lifecycle')
         ctx.effect(() => {
@@ -3225,84 +3824,36 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         ctx.effect(() => {
           const style = document.createElement('style')
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
-          style.textContent = FISH_FX_CSS
+          style.textContent = FISH_FX_CSS + '\n' + FISH_STUDIO_CSS + '\n' + productIconCss()
           document.head.append(style)
           return () => style.remove()
         }, 'dsh-fish-ui: fx styles')
-        ctx.effect(() => {
-          if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-          const glow = document.createElement('div')
-          glow.className = 'fish-cursor-glow'
-          document.body.append(glow)
-          let tx = window.innerWidth / 2
-          let ty = window.innerHeight / 2
-          let x = tx
-          let y = ty
-          let raf = 0
-          const move = event => { tx = event.clientX; ty = event.clientY }
-          const loop = () => {
-            x += (tx - x) * 0.12
-            y += (ty - y) * 0.12
-            glow.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)'
-            raf = window.requestAnimationFrame(loop)
-          }
-          window.addEventListener('pointermove', move, { passive: true })
-          raf = window.requestAnimationFrame(loop)
-
-          const tilt = event => {
-            const card = event.currentTarget
-            const rect = card.getBoundingClientRect()
-            const dx = (event.clientX - rect.left) / rect.width - 0.5
-            const dy = (event.clientY - rect.top) / rect.height - 0.5
-            card.style.transform = 'perspective(900px) rotateX(' + (-dy * 1.6).toFixed(2) + 'deg) rotateY(' + (dx * 1.6).toFixed(2) + 'deg)'
-          }
-          const reset = event => { event.currentTarget.style.transform = '' }
-          const cards = new Set()
-          const bind = event => {
-            const card = event.target.closest && event.target.closest('[data-composer-card]')
-            if (!card || cards.has(card)) return
-            cards.add(card)
-            card.addEventListener('pointermove', tilt)
-            card.addEventListener('pointerleave', reset)
-          }
-          document.addEventListener('pointerover', bind, { passive: true })
-          return () => {
-            window.cancelAnimationFrame(raf)
-            window.removeEventListener('pointermove', move)
-            document.removeEventListener('pointerover', bind)
-            for (const card of cards) {
-              card.removeEventListener('pointermove', tilt)
-              card.removeEventListener('pointerleave', reset)
-              card.style.transform = ''
-            }
-            glow.remove()
-          }
-        }, 'dsh-fish-ui: pointer physics')
+        ctx.effect(attachPointerPhysics, 'dsh-fish-ui: pointer physics')
         ctx.inject(['theme'], scope => {
           scope.effect(() => {
-            dcTheme = scope.theme
-            dcSyncTheme()
+            dfTheme = scope.theme
+            dfSyncTheme()
             return () => {
-              for (const dispose of dcThemeLayers.values()) dispose()
-              dcThemeLayers.clear()
-              dcTheme = null
+              for (const dispose of dfThemeLayers.values()) dispose()
+              dfThemeLayers.clear()
+              dfTheme = null
             }
           }, 'dsh-fish-ui: token layers')
         })
         ctx.effect(() => {
           const sync = () => {
-            const enabled = dcGetSnapshot().values.effortBadge !== false
-            const label = enabled ? dcEffortLabel() : null
-            dcPaintEffort(label !== null && !DC_EFFORT_OFF.test(label) ? label : null)
+            const enabled = dfGetSnapshot().values.effortBadge !== false
+            const label = enabled ? dfEffortLabel() : null
+            dfPaintEffort(label !== null && !DF_EFFORT_OFF.test(label) ? label : null)
           }
           sync()
           const timer = setInterval(sync, 500)
           return () => {
             clearInterval(timer)
-            const card = document.querySelector('[data-composer-card]')
+            const card = document.querySelector<HTMLElement>('[data-composer-card]')
             if (card !== null) {
-              card.removeAttribute('data-dc-effort')
-              card.classList.remove('dc-effort-on', 'dc-effort-max')
+              card.removeAttribute('data-df-effort')
+              card.classList.remove('df-effort-on', 'df-effort-max')
             }
           }
         }, 'dsh-fish-ui: effort badge')
@@ -3322,22 +3873,22 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
             }
             if (tries < 30) window.setTimeout(() => open(tries + 1), 400)
           }
-          window.__dcNewSession = () => open(0)
+          window.__dfNewSession = () => open(0)
           scope.effect(() => {
             const timer = window.setTimeout(() => open(0), 2500)
             return () => window.clearTimeout(timer)
           }, 'dsh-fish-ui: new session on launch')
         })
-        ctx.inject(['configForms'], dcConnectSettings)
+        ctx.inject(['configForms'], dfConnectSettings)
         const add = (name, options, Component) => ctx.slots.inject(name,
-          () => ctx.slots.register({ name, ...options }, dcSafe(Component)))
+          () => ctx.slots.register({ name, ...options }, dfSafe(Component)))
         add('conversation.hero.frame', { id: 'dot-whale', order: 20 }, HeroFrame)
-        add('sidebar.footer.action', { id: 'dsh-fish-ui', order: 5, label: () => 'Deep Fish UI' }, DcSidebarAction)
-        add('shell.overlay', { id: 'dc-ambient', order: 5 }, DcOverlay)
-        add('shell.overlay', { id: 'dc-sidebar-dots', order: 6 }, DcSidebarDots)
-        add('shell.overlay', { id: 'dc-caret-trail', order: 4 }, DcCaretTrail)
+        add('sidebar.footer.action', { id: 'dsh-fish-ui', order: 5, label: () => 'Deep Fish UI' }, DfSidebarAction)
+        add('shell.overlay', { id: 'df-ambient', order: 5 }, DfOverlay)
+        add('shell.overlay', { id: 'df-sidebar-dots', order: 6 }, DfSidebarDots)
+        add('shell.overlay', { id: 'df-caret-trail', order: 4 }, DfCaretTrail)
         // Package name, distinct from the Host entry id even though both currently match.
-        add('plugins.bundle.config', { key: 'dsh-fish-ui' }, DcSettingsPage)
+        add('plugins.bundle.config', { key: 'dsh-fish-ui' }, DfSettingsPage)
       },
     }
   },

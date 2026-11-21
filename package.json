@@ -1,8 +1,8 @@
 {
   "name": "dsh-fish-ui",
-  "version": "0.3.1",
+  "version": "0.5.0",
   "type": "module",
-  "description": "Deep Fish UI — a Catppuccin-themed, dot-matrix DSH theme with the whale-girl maid hero artwork, aurora background, pointer physics, thinking/text motion, Maple Mono NF CN type and fish-finish toggles.",
+  "description": "Six illustrated scenes, DeepSeek blue or custom accents, and outline or duotone icons for DeepSeek Harness.",
   "license": "MIT",
   "author": "Guocheng Song",
   "repository": {
@@ -14,19 +14,20 @@
     "url": "https://github.com/feichai0017/dsh-fish-ui/issues"
   },
   "exports": {
-    ".": "./index.js",
-    "./client": "./client.js",
+    ".": "./dist/index.js",
+    "./client": "./dist/client.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
-    "index.js",
-    "client.js",
+    "dist/*.js",
     "cordis.patch.yml",
     "locale/*.json",
     "icon.svg",
+    "icon.png",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "THIRD-PARTY-NOTICES"
   ],
   "dsh": {
     "bundle": {
@@ -56,5 +57,15 @@
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "~3.19.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "~5.9.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build"
   }
 }
