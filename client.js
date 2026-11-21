@@ -2540,7 +2540,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       componentDidCatch(error) { console.error('[dsh-fish-ui] enhancement failed', error) }
       render() { return this.state.failed ? (this.props.fallback ?? null) : this.props.children }
     }
-    const dcSafe = Component => function Deep FishSafeSlot(props) {
+    const dcSafe = Component => function DeepFishSafeSlot(props) {
       return h(DcBoundary, { fallback: props.children }, h(Component, props))
     }
 
