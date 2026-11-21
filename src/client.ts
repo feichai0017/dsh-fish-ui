@@ -1,3 +1,7 @@
+import { dfCreateScenePlate, dfPlaySceneArrival, DF_SCENE_ART_CSS } from './scene-art'
+import { installModelStudio } from './model-studio'
+import { dfInstallReplyMotion } from './reply-motion'
+
 /**
  * Deep Fish UI — the blank New Session surface.
  *
@@ -78,114 +82,8 @@ window.__ModuleLoader__.load({
       scene: Object.keys(SCENES), sceneMotion: ['still', 'calm', 'flow'], iconStyle: ['line', 'duotone'],
     }
 
-    // The same vector originals are used on the conversation, the selector and the cover.
-    // Only the conversation animates. No timers or network requests are needed for a plate.
     const path = (d: string, props?: React.SVGProps<SVGPathElement>) => h('path', { d, ...props })
     const circle = (cx: number, cy: number, r: number, props?: React.SVGProps<SVGCircleElement>) => h('circle', { cx, cy, r, ...props })
-    const ellipse = (cx: number, cy: number, rx: number, ry: number, props?: React.SVGProps<SVGEllipseElement>) => h('ellipse', { cx, cy, rx, ry, ...props })
-    const marks = (count: number, draw: (index: number) => React.ReactElement) => Array.from({ length: count }, (_, n) => draw(n))
-    function chartStars(color: string, count: number) {
-      return h('g', { fill: color }, marks(count, n =>
-        circle((n * 97 + 19) % 402, (n * 47 + 13) % 170, n % 6 === 0 ? 1.05 : .52,
-          { key: n, opacity: .35 + (n % 4) * .15 })))
-    }
-    function drawAtlas([, , mint, sand]: PlateColors, url: (name: string) => string) {
-      const contour = 'M-77 -14C-78 -37 -50 -57 -28 -52S7 -61 31 -49S69 -35 71 -13S99 16 72 33S37 61 13 49S-17 60 -41 45S-83 19 -77 -14Z'
-      const bank = (x: number, y: number, scale: number, rotate: number, count: number, hue: string) => h('g', {
-        transform: 'translate(' + x + ' ' + y + ') rotate(' + rotate + ') scale(' + scale + ')',
-      }, marks(count, n => path(contour, {
-        key: n, transform: 'scale(' + (.19 + n * .12) + ')',
-        fill: n === 5 ? url('wash') : 'none', stroke: hue,
-        strokeWidth: n % 4 === 0 ? 1.15 : .65, opacity: n % 4 === 0 ? .8 : .53,
-      })))
-      return h('g', null,
-        h('rect', { width: 400, height: 180, fill: url('grid'), opacity: .42 }),
-        h('g', { className: 'fish-current' }, bank(336, 17, 1.23, -22, 18, mint), bank(41, 174, .94, 14, 16, mint)),
-        path('M-12 86Q63 32 136 67T268 104T416 64', { fill: 'none', stroke: sand, strokeDasharray: '2 4', opacity: .78 }),
-        h('g', { transform: 'translate(274 94)', stroke: sand, fill: 'none', strokeWidth: .75 },
-          circle(0, 0, 10), circle(0, 0, 2.4), path('M-16 0H-6M6 0H16M0 -16V-6M0 6V16')),
-        h('g', { fill: sand }, circle(92, 56, 1.8), circle(182, 88, 1.4)))
-    }
-    function drawAurora([ink, mid, mint, lilac]: PlateColors, url: (name: string) => string) {
-      return h('g', null, chartStars('#e7faf6', 54),
-        h('g', { className: 'fish-curtain' },
-          path('M-45 109C50 -42 104 150 208 55S355 -33 453 16L443 75C310 22 286 87 191 110S43 37 -38 146Z', { fill: url('silk') }),
-          h('g', { fill: 'none', stroke: mint }, marks(21, n => path(
-            'M-25 ' + (106 + n * .8) + 'C58 ' + (-32 + n * 1.5) + ' 109 ' + (145 + n * 1.2) + ' 200 ' + (67 + n * .72) + 'S342 ' + (-38 + n * 1.5) + ' 428 ' + (14 + n * .85),
-            { key: n, strokeWidth: n % 5 === 0 ? .85 : .4, opacity: .22 + n * .016 }))),
-          path('M-15 66C83 12 122 105 203 56S340 -8 427 9', { fill: 'none', stroke: lilac, opacity: .6, strokeWidth: 1 })),
-        path('M0 155L49 131 74 141 122 107 145 124 175 102 198 119 224 101 276 133 315 107 361 123 400 102V181H0Z', { fill: mid }),
-        path('M0 164L73 143 108 152 157 123 189 140 233 116 278 142 324 127 362 141 400 128V181H0Z', { fill: ink }),
-        path('M0 164L73 143 108 152 157 123 189 140 233 116 278 142 324 127 362 141 400 128', { fill: 'none', stroke: lilac, strokeWidth: .7, opacity: .6 }))
-    }
-    function drawOrbit([ink, mid, lilac, gold]: PlateColors, url: (name: string) => string) {
-      return h('g', null, chartStars('#f0e7ff', 66),
-        h('g', { transform: 'translate(267 77) rotate(-21)', fill: 'none', stroke: lilac },
-          marks(5, n => ellipse(0, 0, 50 + n * 25, 19 + n * 13, {
-            key: n, strokeWidth: n === 2 ? 1.1 : .6, strokeDasharray: n === 3 ? '2 3' : undefined, opacity: .6,
-          })),
-          h('g', { transform: 'scale(1 .40)' },
-            h('g', { className: 'fish-revolve' }, ellipse(75, 0, 3.1, 7.75, { fill: gold, stroke: 'none' })))),
-        circle(267, 77, 43, { fill: url('halo') }), circle(267, 77, 29, { fill: url('planet') }),
-        path('M249 54Q237 87 268 106A29 29 0 0 1 249 54Z', { fill: mid, opacity: .7 }),
-        h('g', { fill: ink, opacity: .2 }, circle(273, 65, 3.2), circle(283, 78, 4.3), circle(265, 88, 2)),
-        path('M20 68L55 53 78 70 110 43 141 49', { fill: 'none', stroke: lilac, strokeWidth: .6 }),
-        h('g', { fill: gold }, circle(20, 68, 1.4), circle(55, 53, 1.8), circle(78, 70, 1.4), circle(110, 43, 2), circle(141, 49, 1.4)),
-        path('M335 134v10m-5 -5h10M162 24v7m-3.5 -3.5h7', { fill: 'none', stroke: gold, strokeWidth: 1 }))
-    }
-    function drawDunes([ink, mid, apricot, ivory]: PlateColors, url: (name: string) => string) {
-      return h('g', null,
-        circle(277, 55, 52, { fill: url('halo') }),
-        circle(277, 55, 28, { fill: url('planet') }),
-        circle(277, 55, 34, { fill: 'none', stroke: ivory, opacity: .5, strokeWidth: .6 }),
-        path('M-14 105Q49 81 99 95T204 91T305 88T415 61V182H-14Z', { fill: apricot, opacity: .64 }),
-        path('M-14 97C37 83 86 122 160 116S326 56 415 88V182H-14Z', { fill: mid }),
-        h('g', { className: 'fish-sand' },
-          path('M-18 142C66 150 145 79 220 98S339 154 421 120V188H-18Z', { fill: ink }),
-          h('g', { fill: 'none', stroke: apricot }, marks(16, n => path(
-            'M-20 ' + (142 + n * 3.2) + 'C68 ' + (150 + n * 2.5) + ' 146 ' + (78 + n * 3.6) + ' 220 ' + (98 + n * 3.3) + 'S339 ' + (154 + n * 3.5) + ' 423 ' + (120 + n * 2.5),
-            { key: n, strokeWidth: n === 0 ? 1.4 : .55, opacity: n === 0 ? .98 : .48 })))),
-        path('M62 59q6 -4 11 0q4 -6 10 -6M101 44q4 -2 7 1q4 -4 8 -4', { fill: 'none', stroke: ivory, opacity: .8, strokeWidth: .9 }))
-    }
-    function drawRain([ink, mid, ice, pink]: PlateColors, url: (name: string) => string) {
-      const roofs = marks(20, n => {
-        const x = n * 22 - 8
-        const y = 55 + (n * 37) % 74
-        return h('g', { key: n },
-          h('rect', { x, y, width: 19, height: 150 - y, fill: n % 3 === 0 ? mid : ink }),
-          path('M' + x + ' ' + y + 'h18', { stroke: n % 3 === 0 ? pink : ice, opacity: .8, strokeWidth: 1 }),
-          h('rect', { x: x + 3, y: y + 5, width: 12, height: 144 - y, fill: url('windows') }))
-      })
-      return h('g', null,
-        circle(287, 62, 45, { fill: url('halo') }),
-        circle(287, 62, 20, { fill: pink, opacity: .85 }),
-        roofs,
-        path('M0 147H400V180H0Z', { fill: ink }),
-        h('g', null, marks(41, n => {
-          const x = (n * 61) % 400
-          return path('M' + x + ' ' + (150 + n % 24) + 'h' + (3 + n % 13), { key: n, stroke: n % 3 ? ice : pink, opacity: .28 + n % 4 * .11, strokeWidth: 1 })
-        })),
-        h('g', { className: 'fish-rainfall', stroke: ice, strokeWidth: .65, opacity: .57 },
-          marks(48, n => {
-            const x = (n * 83) % 452 - 12
-            return path('M' + x + ' ' + ((n * 43) % 226 - 33) + 'l-5 14', { key: n })
-          })))
-    }
-    function drawLotus([ink, mid, jade, blush]: PlateColors, url: (name: string) => string) {
-      const pad = (x: number, y: number, size: number, angle: number) => h('g', { transform: 'translate(' + x + ' ' + y + ') rotate(' + angle + ') scale(' + size + ')' },
-        path('M0 0L-28 17C-47 7 -43 -17 -21 -25C5 -40 45 -22 44 0C42 22 6 36 -22 23Z', { fill: mid, stroke: jade, strokeWidth: 1.15 }),
-        path('M0 0Q-10 -9 -22 -18M0 0Q3 -16 10 -25M0 0Q21 -10 34 -10M0 0Q21 5 30 14M0 0Q3 13 -9 23', { fill: 'none', stroke: jade, opacity: .55, strokeWidth: .8 }))
-      return h('g', null,
-        h('g', { transform: 'translate(249 93) scale(1 .48)', fill: 'none', stroke: jade },
-          h('g', { className: 'fish-pond-ring' }, marks(6, n => circle(0, 0, 22 + n * 17, { key: n, strokeWidth: n % 2 ? .65 : 1.15, opacity: .72 - n * .075 })))),
-        pad(370, 33, 1.12, -16), pad(332, 2, .72, 12), pad(32, 148, 1.08, 8), pad(84, 155, .53, -21),
-        h('g', { transform: 'translate(247 90)' },
-          marks(9, n => path('M0 0C-8 -5 -10 -14 -3 -23C4 -18 9 -7 0 0Z', { key: n, transform: 'rotate(' + (n * 40) + ')', fill: n % 2 ? blush : jade, stroke: ink, strokeWidth: .75 })),
-          circle(0, 0, 3.6, { fill: '#f8da91' })),
-        h('g', { fill: jade, opacity: .65 }, circle(169, 37, 1.15), circle(178, 39, .7), circle(129, 111, 1)))
-    }
-    const DRAW_SCENE = { atlas: drawAtlas, aurora: drawAurora, orbit: drawOrbit, dunes: drawDunes, rain: drawRain, lotus: drawLotus }
-    // Each pair is an outline and, where appropriate, a second ink underneath it.
     const FISH_ICONS = {
       fish: ['M2 8.5 7 11c3-6 10-6.5 14 1-4.5 7.5-11 7-14 1L2 15.5Z M14 7.2c-2 3.1-2 6.5 0 9.6 M17.2 11.2h.1', 'M7 12c3-6 10-6 14 0-4 7-11 7-14 0Z'],
       contour: ['M2 14c0-5 3-6 6-6s3-5 7-5 7 4 7 8-5 4-7 7-6 4-9 2-4-3-4-6Z M6 14c0-3 4-3 6-6s6-1 6 2-3 3-5 6-7 2-7-2Z M10 14l4-3', 'M2 14c0-5 3-6 6-6s3-5 7-5 7 4 7 8-5 4-7 7-6 4-9 2-4-3-4-6Z'],
@@ -274,26 +172,7 @@ window.__ModuleLoader__.load({
         tone && path(tone, { className: 'fish-icon-tone' }),
         path(outline, { stroke: 'currentColor', strokeWidth: 1.65, strokeLinecap: 'round', strokeLinejoin: 'round' }))
     }
-    const FishPlate = React.memo(function FishPlate({ scene, className, align = 'xMidYMid slice' }: { scene: keyof typeof SCENES; className?: string; align?: string }) {
-      const id = 'fish-plate-' + React.useId().replace(/[^a-zA-Z0-9_-]/g, '')
-      const ref = (name: string) => 'url(#' + id + '-' + name + ')'
-      const colors = SCENES[scene].colors
-      const [ink, mid, accent, glint] = colors
-      const stop = (offset: number, stopColor: string, stopOpacity = 1) => h('stop', { offset, stopColor, stopOpacity })
-      return h('svg', { className, viewBox: '0 0 400 180', preserveAspectRatio: align, 'aria-hidden': true, focusable: false },
-        h('defs', null,
-          h('linearGradient', { id: id + '-base', x1: '0%', y1: '100%', x2: '82%', y2: '0%' }, stop(0, ink), stop(1, mid)),
-          h('radialGradient', { id: id + '-wash' }, stop(0, accent, .29), stop(1, accent, .02)),
-          h('radialGradient', { id: id + '-halo' }, stop(0, glint, .63), stop(.5, glint, .27), stop(1, glint, 0)),
-          h('linearGradient', { id: id + '-planet', x2: '90%', y2: '70%' }, stop(0, glint), stop(.65, accent), stop(1, mid)),
-          h('linearGradient', { id: id + '-silk', x1: '0%', y1: '90%', x2: '55%', y2: '0%' }, stop(0, accent, .02), stop(.55, accent, .8), stop(1, glint, .08)),
-          h('pattern', { id: id + '-grid', width: 18, height: 18, patternUnits: 'userSpaceOnUse' },
-            path('M18 0H0V18', { fill: 'none', stroke: accent, opacity: .55, strokeWidth: .54 })),
-          h('pattern', { id: id + '-windows', width: 5, height: 7, patternUnits: 'userSpaceOnUse' },
-            h('rect', { x: 1, y: 1, width: 1.3, height: 2.6, fill: glint, opacity: .65 }))),
-        h('rect', { width: 400, height: 180, fill: ref('base') }),
-        DRAW_SCENE[scene](colors, ref))
-    })
+    const FishPlate = dfCreateScenePlate(React)
 
     /* ------------------------------------------------------------ hero mascot */
 
@@ -1069,7 +948,7 @@ window.__ModuleLoader__.load({
       }, [show])
       return h('div', { className: 'dwe-frame' },
         values.aurora && h('div', { className: 'fish-backdrop', 'data-home': hero === true, 'aria-hidden': true },
-          h(FishPlate, { scene: values.scene })),
+          h(FishPlate, { scene: values.scene, live: true })),
         show ? h('div', { key: 'sign', className: 'dwe-sign' }, 'dsh-fish-ui') : null,
         show ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
         children)
@@ -1222,146 +1101,6 @@ body[data-ds-dark-theme] {
 .df-stats-item {
   opacity: 0.85;
 }
-
-
-/* ---------------------------------------------- reasoning effort celebration */
-body[data-ds-dark-theme] {
-  --df-effort-field: rgba(255, 255, 255, 0.8);
-  --df-effort-ink: rgba(255, 255, 255, 0.95);
-  --df-effort-glow: rgba(255, 255, 255, 0.6);
-}
-
-body:not([data-ds-dark-theme]) {
-  --df-effort-field: rgba(58, 62, 72, 0.55);
-  --df-effort-ink: rgba(22, 24, 28, 0.92);
-  --df-effort-glow: rgba(40, 44, 52, 0.4);
-}
-
-[data-composer-card] {
-  position: relative;
-  /* Own stacking context so the field can paint above the card surface but below its
-     content without touching the host's children. */
-  isolation: isolate;
-}
-
-[data-composer-card].df-effort-on::before {
-  content: '';
-  position: absolute;
-  left: 13%;
-  right: 13%;
-  bottom: 1px;
-  height: 40px;
-  z-index: -1;
-  pointer-events: none;
-  border-radius: 10px;
-  opacity: 0.42;
-  /* Two vertical highlight bars travel from the middle outwards while the model
-     thinks; the third layer is the dot print itself. */
-  background-image: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--df-effort-glow) 50%,
-      transparent 100%
-    ),
-    linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--df-effort-glow) 50%,
-      transparent 100%
-    ),
-    radial-gradient(
-      circle at 1px 1px,
-      var(--df-effort-field) 0.9px,
-      transparent 1.15px
-    );
-  background-size: 0% 100%, 0% 100%, 4px 4px;
-  background-repeat: no-repeat, no-repeat, repeat;
-  background-position: 50% 50%, 50% 50%, 0 0;
-  /* Fade the field out towards both edges so it reads as depth, not a band. */
-  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 74%, transparent 100%);
-  clip-path: inset(0 50% 0 50%);
-  animation: df-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-[data-composer-card].df-effort-on::after {
-  content: attr(data-df-effort);
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 3px;
-  height: 40px;
-  z-index: 2;
-  pointer-events: none;
-  text-align: center;
-  font: italic 900 30px / 40px "Segoe UI", system-ui, sans-serif;
-  letter-spacing: 0.08em;
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    var(--df-effort-ink) 0.95px,
-    transparent 1.15px
-  );
-  background-size: 3px 3px;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  opacity: 0;
-  /* The shadow follows the dot alpha, so the word carries a soft halo. */
-  filter:
-    drop-shadow(0 0 5px rgba(255, 255, 255, 0.4))
-    drop-shadow(0 0 16px rgba(255, 255, 255, 0.2));
-  animation: df-effort-word 620ms 740ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-[data-composer-card].df-effort-max::after {
-  background-image: radial-gradient(
-    circle at 1px 1px,
-    var(--df-accent) 0.95px,
-    transparent 1.15px
-  );
-  filter:
-    drop-shadow(0 0 6px rgba(122, 170, 255, 0.75))
-    drop-shadow(0 0 20px rgba(122, 170, 255, 0.45));
-}
-
-body:has([data-chat-running]) [data-composer-card].df-effort-on::before {
-  animation:
-    df-effort-open 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards,
-    df-effort-spread 2.2s 900ms ease-out infinite;
-}
-
-@keyframes df-effort-open {
-  from { clip-path: inset(0 50% 0 50%); }
-  to { clip-path: inset(0 0 0 0); }
-}
-
-@keyframes df-effort-word {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes df-effort-spread {
-  0% {
-    background-size: 12% 100%, 12% 100%, 4px 4px;
-    background-position: 50% 50%, 50% 50%, 0 0;
-  }
-  100% {
-    background-size: 12% 100%, 12% 100%, 4px 4px;
-    background-position: 0% 50%, 100% 50%, 0 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-composer-card].df-effort-on::before,
-  [data-composer-card].df-effort-on::after,
-  body:has([data-chat-running]) [data-composer-card].df-effort-on::before {
-    animation: none;
-    clip-path: inset(0 0 0 0);
-    opacity: 1;
-  }
-}
-
-
 
 
 /* ------------------------------------------------------------- startup splash */
@@ -2522,46 +2261,6 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     }
 
     /**
-     * Reasoning effort badge, done entirely in CSS.
-     *
-     * We only read the effort label and stamp two attributes on the composer card; the
-     * unfolding dot field and the dot-printed level name are pseudo-elements, so there is no
-     * canvas geometry to measure and nothing to drift when the layout changes.
-     */
-    const DF_EFFORT_OFF = /^(off|none|disabled?|无|关闭)$/i
-
-    function dfEffortLabel() {
-      const card = document.querySelector<HTMLElement>('[data-composer-card]')
-      if (card === null) return null
-      const node = card.querySelector('[class*="_triggerEffort"]')
-      if (node === null) return null
-      const text = (node.textContent || '').trim()
-      return text === '' ? null : text
-    }
-
-    function dfPaintEffort(label: string | null) {
-      const card = document.querySelector<HTMLElement>('[data-composer-card]')
-      if (card === null) return
-      if (label === null) {
-        card.removeAttribute('data-df-effort')
-        card.classList.remove('df-effort-on', 'df-effort-max')
-        return
-      }
-      const word = label.toUpperCase()
-      const changed = card.getAttribute('data-df-effort') !== word
-      card.setAttribute('data-df-effort', word)
-      card.classList.toggle('df-effort-max', word === 'MAX')
-      if (changed) {
-        // Toggle the class off and on so the CSS animation replays for the new word.
-        card.classList.remove('df-effort-on')
-        void card.offsetWidth
-        card.classList.add('df-effort-on')
-      } else if (!card.classList.contains('df-effort-on')) {
-        card.classList.add('df-effort-on')
-      }
-    }
-
-    /**
      * Startup splash: the dot wordmark over the boot screen.
      *
      * The whole animation is CSS transform/opacity so the compositor drives it: no canvas,
@@ -2891,7 +2590,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     Object.assign(DF_COPY.zh.items, {
       reading: ['阅读排版', '舒展段落、标题与引用，保留你的字号'],
       code: ['代码配色', '低饱和语法颜色，保持代码层次'],
-      effortBadge: ['推理等级动画', '输入框里用点阵显示当前推理等级'],
+      effortBadge: ['推理强度波形', '在模型选择器中显示当前推理档位的波形反馈'],
       sidebarDots: ['悬停点阵', '鼠标悬停在侧边栏按钮上时亮起点阵'],
       sidebarRail: ['蓝色竖线', '在悬停按钮左侧显示鲸鱼蓝竖线'],
       thinkingLabel: ['英文思考文案', '把状态行换成 “Deep thinking for 12s. . .”'],
@@ -2900,7 +2599,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
     Object.assign(DF_COPY.en.items, {
       reading: ['Reading layout', 'Clear paragraphs, headings and quotes at your chosen font size'],
       code: ['Code palette', 'Muted, distinct syntax colours'],
-      effortBadge: ['Effort badge', 'Print the reasoning level in dots inside the composer'],
+      effortBadge: ['Reasoning waveform', 'Show the selected reasoning intensity in the model control'],
       sidebarDots: ['Hover dot field', 'Light the dot field around the pointer on sidebar buttons'],
       sidebarRail: ['Blue rail', 'Show a whale-blue rail on the left of the hovered button'],
       thinkingLabel: ['English status label', 'Replace the status row with “Deep thinking for 12s. . .”'],
@@ -3147,24 +2846,6 @@ body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { opacity: .82; }
   width: 100%;
   height: 100%;
 }
-.fish-backdrop { --fish-cycle: 34s; --fish-shower: 5s; }
-html[data-fish-pace="flow"] .fish-backdrop { --fish-cycle: 14s; --fish-shower: 1.8s; }
-@media (prefers-reduced-motion: no-preference) {
-  html:not([data-fish-pace="still"]) .fish-backdrop .fish-current { animation: fish-current var(--fish-cycle) ease-in-out infinite alternate; }
-  html:not([data-fish-pace="still"]) .fish-backdrop .fish-curtain { animation: fish-curtain var(--fish-cycle) ease-in-out infinite alternate; }
-  html:not([data-fish-pace="still"]) .fish-backdrop .fish-revolve { animation: fish-revolve calc(var(--fish-cycle) * 1.4) linear infinite; }
-  html:not([data-fish-pace="still"]) .fish-backdrop .fish-sand { animation: fish-sand var(--fish-cycle) ease-in-out infinite alternate; }
-  html:not([data-fish-pace="still"]) .fish-backdrop .fish-rainfall { animation: fish-rainfall var(--fish-shower) linear infinite; }
-  html:not([data-fish-pace="still"]) .fish-backdrop .fish-pond-ring { animation: fish-pond-ring calc(var(--fish-cycle) * .42) ease-out infinite; }
-  html[data-fish-paused] .fish-backdrop g { animation-play-state: paused !important; }
-}
-@keyframes fish-current { from { transform: translate(-5px, -2px); } to { transform: translate(7px, 3px); } }
-@keyframes fish-curtain { from { transform: translate(-4px, 2px) skewX(-3deg); opacity: .76; } to { transform: translate(7px, -6px) skewX(5deg); opacity: 1; } }
-@keyframes fish-revolve { to { transform: rotate(360deg); } }
-@keyframes fish-sand { from { transform: translate(-7px, 2px); } to { transform: translate(7px, -2px); } }
-@keyframes fish-rainfall { 0% { transform: translate(5px,-14px); opacity: 0; } 18%, 78% { opacity: .7; } 100% { transform: translate(-6px,17px); opacity: 0; } }
-@keyframes fish-pond-ring { 0% { transform: scale(.76); opacity: 0; } 24% { opacity: .9; } 100% { transform: scale(1.13); opacity: 0; } }
-
 .fish-studio, .df-sheet-panel {
   --fish-panel: var(--dsw-alias-bg-base, #f5f7f5);
   --fish-label: var(--dsw-alias-label-primary, #293936);
@@ -3824,7 +3505,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         ctx.effect(() => {
           const style = document.createElement('style')
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
-          style.textContent = FISH_FX_CSS + '\n' + FISH_STUDIO_CSS + '\n' + productIconCss()
+          style.textContent = FISH_FX_CSS + '\n' + FISH_STUDIO_CSS + '\n' + DF_SCENE_ART_CSS + '\n' + productIconCss()
           document.head.append(style)
           return () => style.remove()
         }, 'dsh-fish-ui: fx styles')
@@ -3840,23 +3521,8 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
             }
           }, 'dsh-fish-ui: token layers')
         })
-        ctx.effect(() => {
-          const sync = () => {
-            const enabled = dfGetSnapshot().values.effortBadge !== false
-            const label = enabled ? dfEffortLabel() : null
-            dfPaintEffort(label !== null && !DF_EFFORT_OFF.test(label) ? label : null)
-          }
-          sync()
-          const timer = setInterval(sync, 500)
-          return () => {
-            clearInterval(timer)
-            const card = document.querySelector<HTMLElement>('[data-composer-card]')
-            if (card !== null) {
-              card.removeAttribute('data-df-effort')
-              card.classList.remove('df-effort-on', 'df-effort-max')
-            }
-          }
-        }, 'dsh-fish-ui: effort badge')
+        installModelStudio(ctx, React)
+        dfInstallReplyMotion(React, ctx, dfPlaySceneArrival)
         // Fresh conversation on every launch. The service may not be reachable the first
         // moment the shell is up, so retry for a few seconds and leave a manual trigger.
         ctx.inject(['uiWorkspace'], scope => {

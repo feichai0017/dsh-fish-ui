@@ -2,22 +2,28 @@
 
 # Deep Fish UI
 
-**Deep Fish UI** pairs the dot-matrix whale-girl with six illustrated scenes for the DeepSeek Harness Web UI. Each has its own motion and illustrated backdrop. The interface starts in DeepSeek blue (`#4D6BFE`). Choose a preset or any custom accent independently of the scene.
+**Deep Fish UI** adds painted conversation backgrounds and a model and reasoning picker to DeepSeek Harness. The interface starts in DeepSeek blue (`#4D6BFE`). Choose a preset or a custom accent independently of the scene.
 
-Everything is toggleable from **Settings → Plugins → dsh-fish-ui**, or the **Deep Fish UI** action in the sidebar footer.
+Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fish-ui** to change the appearance.
+
+## Model and reasoning picker
+
+Open the composer's model button. Select a model card, then choose one of the reasoning levels offered for that model. The ridge changes shape with the model and rises with the effort setting. The compact trigger follows the session through reasoning and text output. Use the original model row to search the full provider catalog. Harness applies selections to the current session and reports pending or rejected changes.
 
 ## Scenes
 
-| Scene | Motion |
-| --- | --- |
-| Tidal Atlas | Sea-depth contours drift beneath a plotted route. |
-| Polar Silk | Aurora ribbons sway above two mountain ridges. |
-| Lunar Orbit | A satellite circles a cratered moon. |
-| Amber Dunes | Wind shifts the foreground sand ridges. |
-| Neon Rain | Slanted rain passes a skyline and its reflections. |
-| Celadon Pond | Concentric ripples expand between lotus leaves. |
+The six original, AI-generated 1280 × 640 paintings ship in the plugin. Landscape references include [USGS seafloor relief](https://www.usgs.gov/media/images/shaded-relief-bathymetry-examples), [NASA lunar imagery](https://science.nasa.gov/moon/image-galleries/moonscapes/) and [Bian Shoumin’s lotus leaves at The Met](https://www.metmuseum.org/art/collection/search/49236).
 
-Choose a card in **Scenes** to apply it. The backdrop recedes behind a conversation. **Scene motion** has Still, Calm and Flow settings. **Icon style** switches between outline and duotone for the plugin and common Harness actions, including new chat, search, folders, copy and send. The **Navigation & action icons** switch restores the host artwork. Preferences are saved to the current profile.
+| Scene | When the first text of a reply arrives |
+| --- | --- |
+| Tidal Atlas | A cyan current traces the submarine canyon. |
+| Polar Silk | A seam of green light travels along the auroral curtain. |
+| Lunar Orbit | A small satellite crosses the bright edge of the moon. |
+| Amber Dunes | A warm glint follows the crest of a dune. |
+| Neon Rain | City lights shimmer once in the harbor reflection. |
+| Celadon Pond | A ripple expands through the still water beside the lotus. |
+
+Each arrival plays once per live turn. Opening history or loading older messages keeps the scene quiet. **Scene motion** offers Still, Calm and Flow. Still and the system’s reduced-motion setting suppress the arrivals. **Icon style** switches between outline and duotone for the plugin and common Harness actions. Appearance preferences are saved to the current profile.
 
 ## What's inside
 
@@ -52,6 +58,7 @@ Without it the stack falls back to the system monospace font; the font layer can
 ## Compatibility
 
 - DeepSeek Harness `>=0.2.2-rc.3 <0.3.0`
+- Model and reply integration verified against Harness `0.2.2-rc.5`.
 - Node.js `>=22`
 
 ## Development
