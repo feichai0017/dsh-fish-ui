@@ -1,9 +1,8 @@
 import { dfReplyPhase, dfSubscribeReplyPhase } from './reply-motion'
-import { holdModelMenuFocus, installModelPresets } from './model-presets'
 
 type ReactRuntime = typeof import('react')
 type Provider = { id: string; name: string }
-export type Selection = { provider: string; model: string; reasoningEffort?: string }
+type Selection = { provider: string; model: string; reasoningEffort?: string }
 type Effort = { id: string; name: string }
 type CatalogModel = {
   id: string
@@ -12,14 +11,13 @@ type CatalogModel = {
   badge?: { text: unknown }
 }
 type Group = Provider & { models: readonly CatalogModel[] }
-export interface DirectoryState {
+interface DirectoryState {
   current: Selection | null
   pending: Selection | null
   groups: readonly Group[]
-  status: 'idle' | 'loading' | 'ready' | 'selecting' | 'error'
   retainedEffort?: string
 }
-export interface Directory {
+interface Directory {
   store: { getSnapshot(): DirectoryState; subscribe(fn: () => void): () => void }
   select(selection: Selection): Promise<{ ok: boolean; error?: { code: string; message: string } }>
 }
@@ -166,7 +164,6 @@ html:is(.df-off-fishmotion,[data-fish-pace="still"]) :is(.df-ms-ridge path,.df-m
 `
 
 export function installModelStudio(ctx: FishClientContext, React: ReactRuntime) {
-  installModelPresets(ctx, React)
   const h = React.createElement
   const zh = () => /^zh\b/i.test(document.documentElement.lang || navigator.language)
   function useDirectory(directory: Directory) {
@@ -247,7 +244,12 @@ export function installModelStudio(ctx: FishClientContext, React: ReactRuntime) 
     const blocked = locked || pending
     async function choose(next: Selection, button: HTMLButtonElement) {
       if (blocked || directory.store.getSnapshot().pending) return
-      const restoreFocus = holdModelMenuFocus(button)
+      // Native rows disable while selecting. Keep focus in the menu's React subtree during the write.
+      const menu = button.closest<HTMLElement>('[role="menu"]')
+      const trigger = menu?.id && document.activeElement === button
+        ? Array.from(document.querySelectorAll<HTMLButtonElement>('button[aria-controls]'))
+          .find(node => node.getAttribute('aria-controls') === menu.id) : undefined
+      trigger?.focus()
       try {
         const result = await directory.select(next)
         if (!result.ok && result.error) reportFailure(result.error.code === 'session/writer-held'
@@ -255,7 +257,11 @@ export function installModelStudio(ctx: FishClientContext, React: ReactRuntime) 
           : result.error.message)
       } catch (err) {
         reportFailure(err instanceof Error ? err.message : String(err))
-      } finally { restoreFocus() }
+      } finally {
+        if (trigger) requestAnimationFrame(() => {
+          if (button.isConnected && !button.disabled && document.activeElement === trigger) button.focus()
+        })
+      }
     }
     // Quick choices stay small. The native model header opens the full searchable provider catalog.
     const entries = [provider, ...state.groups.filter(group => group.id !== provider.id)]

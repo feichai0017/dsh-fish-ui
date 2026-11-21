@@ -8,9 +8,9 @@ Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fi
 
 ## Launch and welcome
 
-When Harness starts on a blank conversation, a 1.66-second opening shows the selected painting inside a circular window. The etched rim takes your accent color. A click, keystroke or scroll dismisses it immediately. Restoring an existing conversation takes you straight back to the transcript.
+When Harness opens to a blank conversation, a stippled humpback rises out of the selected painting. Light follows along the glass edges of the real window, then settles. The same whale stays above the composer. Click, type or scroll at any time to finish the three-second opening. Restoring a conversation opens directly to its transcript.
 
-Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it. Still mode, reduced motion and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
+Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it in the scene gallery. Still mode, reduced motion, increased contrast and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
 
 On the desktop welcome page, open the workspace name above the composer. Choose **Add workspace…** to open the system folder chooser, or select an already listed workspace. Harness adds the folder and selects it. Deep Fish UI supplies the desktop chooser when the host's workspace menu is missing its folder action.
 
@@ -27,8 +27,6 @@ New configurations start at 22% transparency and 24 px blur for the interface. T
 ## Model and reasoning picker
 
 Open the composer's model button. Select a model card, then choose one of the reasoning levels offered for that model. The shaded ridge takes its light from the scene, changes shape with the model and rises with reasoning effort. It moves while the session is thinking or streaming and rests when the session is idle. Use the original model row to search the full provider catalog. Harness applies selections to the current session and reports pending or rejected changes.
-
-Use **Save current as Daily** or **Save current as Deep** in the model menu to remember a provider, model and reasoning level. Both presets live in the current Harness profile. Once saved, select **Daily** or **Deep** in the composer toolbar to apply the combination to that conversation in one click. To replace a preset, select the new combination and save it to the same slot.
 
 ## Pending approvals
 
@@ -54,7 +52,7 @@ Each arrival plays once per live turn. Opening history or loading older messages
 ## What's inside
 
 - **Catppuccin palette** supplies light and dark reading surfaces, text and borders. Accent color is a separate preference.
-- **Whale-girl hero**: the dot-matrix maid portrait and wordmark on a blank session, a full-page dot field, a slow bottom wave and pointer ripples.
+- **Welcome illustration** uses a single dot-matrix humpback on a blank session, with a faint dot field, a slow bottom wave and pointer ripples.
 - **Pointer physics**: a soft glow that follows the cursor, and a subtle 3D tilt on the composer.
 - **Thinking & text motion**: replies rise in, reasoning blocks shimmer gently, streaming text keeps a calm breathing rhythm.
 - **Fish finish**: Maple Mono NF CN across the UI and code with `ss01` / `cv01` / `liga`, a 16px composer with accent focus glow, rounded code surfaces, and motion-safe hover.
@@ -98,4 +96,4 @@ npm run build
 
 ## License
 
-Deep Fish UI is distributed under the [MIT License](./LICENSE). Notices for the inherited code and dot artwork ship in [THIRD-PARTY-NOTICES](./THIRD-PARTY-NOTICES).
+Deep Fish UI is distributed under the [MIT License](./LICENSE). Notices for the inherited code ship in [THIRD-PARTY-NOTICES](./THIRD-PARTY-NOTICES).

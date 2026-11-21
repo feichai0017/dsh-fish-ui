@@ -8,12 +8,6 @@ const flags = [
   'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons', 'launchIntro',
 ] as const
 
-const modelPreset = Schema.object({
-  provider: Schema.string().required(),
-  model: Schema.string().required(),
-  reasoningEffort: Schema.string(),
-}).default(null).volatile().hidden()
-
 export const Config = Schema.object({
   ...Object.fromEntries(flags.map(key => [key, Schema.boolean().default(true).volatile()])),
   ...Object.fromEntries(Object.entries(GLASS_RANGES).map(([key, range]) => [
@@ -23,8 +17,6 @@ export const Config = Schema.object({
   sceneMotion: Schema.union(['still', 'calm', 'flow']).default('calm').volatile(),
   iconStyle: Schema.union(['line', 'duotone']).default('duotone').volatile(),
   accentColor: Schema.string().pattern(/^#[0-9a-f]{6}$/i).default('#4D6BFE').volatile(),
-  dailyModelPreset: modelPreset,
-  deepModelPreset: modelPreset,
   settingsMigrated: Schema.boolean().default(false).volatile().hidden(),
 })
 

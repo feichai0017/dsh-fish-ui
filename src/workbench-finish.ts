@@ -8,8 +8,68 @@ const activeTab = ':is([data-conversation-tabs] > [role="tab"], [data-dockkit-ta
 const guideCard = '[data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[aria-haspopup="menu"])'
 const compass = '[data-sidebar-right-guide] > span[aria-hidden="true"]:first-child'
 const catalogRow = '[data-plugin-panel] :is(li[data-plugin-item], li[data-plugin-package])'
+const arriving = `${moving}[data-df-arrival]:not(.df-off-glass)`
+const leftRail = 'div:has(> [data-slot="sidebar"])'
+const titleBar = 'header[data-window-drag]:has(> [data-conversation-header-leading])'
+const dockGlass = '[data-sidebar-right-panel] :is([data-dockkit-pane], [data-dockkit-empty], [data-dockkit-float])'
+const bottomBar = '[data-shell-bottom]'
 
 export const workbenchFinishCss = `
+/* Only the glass pigment animates. The standard rim, blur, fill and pointer
+   behavior live on the shell's existing ::before layers. */
+@property --df-arrival-rim {
+  syntax: '<color>';
+  inherits: false;
+  initial-value: transparent;
+}
+@media (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference)
+    and (prefers-contrast: no-preference) and (forced-colors: none) {
+  ${arriving} body {
+    --df-arrival-base-film: var(--df-shell-film);
+    --df-arrival-light: color-mix(in srgb, var(--df-shell-accent) 48%, var(--df-shell-scene));
+    --df-arrival-level: 18%;
+  }
+  ${arriving} body[data-ds-dark-theme] {
+    --df-arrival-light: color-mix(in srgb, var(--df-shell-scene) 68%, #f5faff);
+  }
+  ${arriving}[data-df-arrival="illuminate"] body { --df-arrival-level: 83%; }
+  ${arriving}[data-df-arrival="settle"] body { --df-arrival-level: 0%; }
+
+  ${arriving} ${titleBar}::before,
+  ${arriving}[data-windows-titlebar] div:has(> [data-rightbar-col])::before {
+    --df-arrival-source: 58% 100%;
+    --df-arrival-line-size: 55% 2px;
+    --df-arrival-pool-size: 51% 23px;
+  }
+  ${arriving} ${leftRail}::before {
+    --df-arrival-source: 100% 34%;
+    --df-arrival-line-size: 2px 55%;
+    --df-arrival-pool-size: 64px 57%;
+    --df-arrival-delay: 65ms;
+  }
+  ${arriving} ${dockGlass}::before {
+    --df-arrival-source: 0% 43%;
+    --df-arrival-line-size: 2px 55%;
+    --df-arrival-pool-size: 64px 57%;
+    --df-arrival-delay: 100ms;
+  }
+  ${arriving} ${bottomBar}::before {
+    --df-arrival-source: 42% 0%;
+    --df-arrival-line-size: 54% 2px;
+    --df-arrival-pool-size: 52% 22px;
+    --df-arrival-delay: 135ms;
+  }
+  ${arriving} :is(${leftRail}, ${titleBar}, ${dockGlass}, ${bottomBar})::before,
+  ${arriving}[data-windows-titlebar] div:has(> [data-rightbar-col])::before {
+    --df-arrival-rim: color-mix(in srgb, var(--df-arrival-light) var(--df-arrival-level), transparent);
+    --df-shell-film:
+      radial-gradient(ellipse var(--df-arrival-line-size) at var(--df-arrival-source), var(--df-arrival-rim), transparent),
+      radial-gradient(ellipse var(--df-arrival-pool-size) at var(--df-arrival-source),
+        color-mix(in srgb, var(--df-arrival-rim) 24%, transparent), transparent),
+      var(--df-arrival-base-film);
+    transition: --df-arrival-rim 620ms cubic-bezier(.22,.68,.3,1) var(--df-arrival-delay, 0ms);
+  }
+}
 @media not (forced-colors: active) {
   ${root} body {
     --df-wb-light: color-mix(in srgb, var(--df-shell-accent) 68%, var(--df-shell-scene));
