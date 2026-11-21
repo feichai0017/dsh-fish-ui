@@ -4,7 +4,7 @@ import Schema from '@deepseek-ai/schemastery'
 export const Config = Schema.object(Object.fromEntries([
   'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
   'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
-  'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
+  'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode', 'catppuccin', 'aurora', 'cursor', 'textMotion',
 ].map(key => [key, Schema.boolean().default(true).volatile()]).concat([
   ['settingsMigrated', Schema.boolean().default(false).volatile().hidden()],
 ])))

@@ -2370,6 +2370,7 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
       'glass', 'effortBadge', 'sidebarDots', 'sidebarRail', 'bold', 'focusRing', 'diff',
       'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
+      'catppuccin', 'aurora', 'cursor', 'textMotion',
     ].map(key => [key, true])))
     const DC_OFF_CLASS = Object.freeze(Object.fromEntries(Object.keys(DC_DEFAULT_SETTINGS)
       .map(key => [key, 'dc-off-' + key.toLowerCase()])))
@@ -2426,10 +2427,29 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       '--dc-accent': dcModes('#3269B7', '#8AB6FA'),
       '--dc-focus': dcModes('rgb(50 105 183 / 18%)', 'rgb(138 182 250 / 18%)'),
     }
+    const DC_CAT = {
+      '--dsw-alias-bg-base': dcModes('#eff1f5', '#1e1e2e'),
+      '--dsw-alias-bg-layer-1': dcModes('#e6e9ef', '#181825'),
+      '--dsw-alias-bg-layer-2': dcModes('#dce0e8', '#11111b'),
+      '--dsw-alias-bg-overlay': dcModes('#eff1f5', '#181825'),
+      '--dsw-alias-border-l1': dcModes('#bcc0cc', '#313244'),
+      '--dsw-alias-border-l2': dcModes('#acb0be', '#45475a'),
+      '--dsw-alias-label-primary': dcModes('#4c4f69', '#cdd6f4'),
+      '--dsw-alias-label-secondary': dcModes('#6c6f85', '#a6adc8'),
+      '--dsw-specific-sidebar-fill': dcModes('#e6e9ef', '#181825'),
+      '--dsw-alias-brand-primary': dcModes('#1e66f5', '#89b4fa'),
+      '--dsw-alias-state-success-primary': dcModes('#40a02b', '#a6e3a1'),
+      '--dsw-alias-state-warn-primary': dcModes('#df8e1d', '#f9e2af'),
+      '--dsw-alias-state-error-primary': dcModes('#d20f39', '#f38ba8'),
+      '--dsw-alias-state-idle-primary': dcModes('#8c8fa1', '#7f849c'),
+      '--dc-accent': dcModes('#8839ef', '#cba6f7'),
+      '--dc-focus': dcModes('rgb(136 57 239 / 18%)', 'rgb(203 166 247 / 18%)'),
+    }
     function dcSyncTheme() {
       if (dcTheme === null) return
       for (const [name, enabled, tokens] of [
         ['identity', true, DC_IDENTITY],
+        ['catppuccin', dcSettings.catppuccin, DC_CAT],
         ['code', dcSettings.code, DC_CODE], ['diff', dcSettings.diff, DC_DIFF],
       ]) {
         if (enabled && !dcThemeLayers.has(name)) {
@@ -2632,6 +2652,18 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       fishMotion: ['Soft motion', 'Buttons lift on hover and surfaces ease between states'],
       fishCode: ['Code surface', 'Rounded code blocks and tinted inline-code pills'],
     })
+    Object.assign(DC_COPY.zh.items, {
+      catppuccin: ['Catppuccin 配色', 'Latte / Mocha 全套背景、文字、边框与强调色'],
+      aurora: ['极光背景', '缓慢流动的渐变光晕，随主题色呼吸'],
+      cursor: ['指针物理', '跟随指针的柔光、输入框微倾斜'],
+      textMotion: ['思考与文字动效', '回复浮入、思考块微光、流式文字呼吸感'],
+    })
+    Object.assign(DC_COPY.en.items, {
+      catppuccin: ['Catppuccin palette', 'Latte / Mocha backgrounds, text, borders and accents'],
+      aurora: ['Aurora field', 'Slow drifting gradient light that breathes with the accent'],
+      cursor: ['Pointer physics', 'A cursor-following glow and a subtle composer tilt'],
+      textMotion: ['Thinking & text motion', 'Replies rise in, reasoning shimmers, streaming text breathes'],
+    })
     /** Switch drawn as SVG so the capsule ends and the knob are exact shapes. */
     function DcSwitchSvg({ value }) {
       const on = value === true
@@ -2775,6 +2807,65 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
       }
     `
 
+    const FISH_FX_CSS = `
+      :root:not(.dc-off-catppuccin) {
+        --fish-ink: var(--dc-accent, #cba6f7);
+      }
+      :root:not(.dc-off-aurora) body {
+        background-image:
+          radial-gradient(55% 45% at 12% 8%, color-mix(in srgb, var(--dc-accent) 14%, transparent), transparent 70%),
+          radial-gradient(50% 42% at 88% 16%, color-mix(in srgb, #89b4fa 12%, transparent), transparent 70%),
+          radial-gradient(45% 38% at 50% 96%, color-mix(in srgb, #cba6f7 10%, transparent), transparent 72%) !important;
+        background-size: 220% 220%, 220% 220%, 220% 220% !important;
+        background-repeat: no-repeat !important;
+        animation: fish-aurora 26s ease-in-out infinite alternate;
+      }
+      @keyframes fish-aurora {
+        0% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+        100% { background-position: 18% 12%, 82% 20%, 42% 78%; }
+      }
+      .fish-cursor-glow {
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 360px;
+        height: 360px;
+        margin: -180px 0 0 -180px;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0;
+        transition: opacity .35s ease;
+        background: radial-gradient(circle, color-mix(in srgb, var(--dc-accent, #cba6f7) 18%, transparent), transparent 66%);
+        will-change: transform;
+      }
+      :root:not(.dc-off-cursor) .fish-cursor-glow { opacity: .55; }
+      :root:not(.dc-off-cursor) [data-composer-card] {
+        transition: transform .2s ease, box-shadow .25s ease;
+        will-change: transform;
+      }
+      :root:not(.dc-off-textmotion) [data-chat-flow-kind="assistant-step"] {
+        animation: fish-rise .4s cubic-bezier(.16,1,.3,1) both;
+      }
+      @keyframes fish-rise {
+        from { opacity: 0; transform: translateY(7px); }
+        to { opacity: 1; transform: none; }
+      }
+      :root:not(.dc-off-textmotion) [data-chat-group-part="reasoning"] {
+        border-left: 2px solid color-mix(in srgb, var(--dc-accent, #cba6f7) 45%, transparent);
+        padding-left: 10px;
+        animation: fish-breathe 4.5s ease-in-out infinite;
+      }
+      @keyframes fish-breathe {
+        0%, 100% { opacity: .72; }
+        50% { opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .fish-cursor-glow { display: none; }
+        :root body { animation: none !important; }
+      }
+    `
+
     function DcSettingsPage() {
       const copy = dcUsesChinese() ? DC_COPY.zh : DC_COPY.en
       const settings = useDcSettings()
@@ -2825,6 +2916,9 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
         ]),
         group(zh ? 'Fish 字体与质感' : 'Fish finish', [
           item('fishFont'), item('fishGlow'), item('fishMotion'), item('fishCode'),
+        ]),
+        group(zh ? 'Catppuccin 与动效' : 'Catppuccin & motion', [
+          item('catppuccin'), item('aurora'), item('cursor'), item('textMotion'),
         ]),
         h('div', { key: 'footer', className: 'dc-set-footer' }, [
           h('button', { key: 'reset', type: 'button', className: 'dc-set-reset', disabled, onClick: reset }, copy.reset),
@@ -3128,6 +3222,62 @@ body:not([data-ds-dark-theme]) [class*="_sessionRow"][class*="_selected"] {
           document.head.append(style)
           return () => style.remove()
         }, 'dsh-fish-ui: finish styles')
+        ctx.effect(() => {
+          const style = document.createElement('style')
+          style.dataset.dshPlugin = 'dsh-fish-ui: fx'
+          style.textContent = FISH_FX_CSS
+          document.head.append(style)
+          return () => style.remove()
+        }, 'dsh-fish-ui: fx styles')
+        ctx.effect(() => {
+          if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+          const glow = document.createElement('div')
+          glow.className = 'fish-cursor-glow'
+          document.body.append(glow)
+          let tx = window.innerWidth / 2
+          let ty = window.innerHeight / 2
+          let x = tx
+          let y = ty
+          let raf = 0
+          const move = event => { tx = event.clientX; ty = event.clientY }
+          const loop = () => {
+            x += (tx - x) * 0.12
+            y += (ty - y) * 0.12
+            glow.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)'
+            raf = window.requestAnimationFrame(loop)
+          }
+          window.addEventListener('pointermove', move, { passive: true })
+          raf = window.requestAnimationFrame(loop)
+
+          const tilt = event => {
+            const card = event.currentTarget
+            const rect = card.getBoundingClientRect()
+            const dx = (event.clientX - rect.left) / rect.width - 0.5
+            const dy = (event.clientY - rect.top) / rect.height - 0.5
+            card.style.transform = 'perspective(900px) rotateX(' + (-dy * 1.6).toFixed(2) + 'deg) rotateY(' + (dx * 1.6).toFixed(2) + 'deg)'
+          }
+          const reset = event => { event.currentTarget.style.transform = '' }
+          const cards = new Set()
+          const bind = event => {
+            const card = event.target.closest && event.target.closest('[data-composer-card]')
+            if (!card || cards.has(card)) return
+            cards.add(card)
+            card.addEventListener('pointermove', tilt)
+            card.addEventListener('pointerleave', reset)
+          }
+          document.addEventListener('pointerover', bind, { passive: true })
+          return () => {
+            window.cancelAnimationFrame(raf)
+            window.removeEventListener('pointermove', move)
+            document.removeEventListener('pointerover', bind)
+            for (const card of cards) {
+              card.removeEventListener('pointermove', tilt)
+              card.removeEventListener('pointerleave', reset)
+              card.style.transform = ''
+            }
+            glow.remove()
+          }
+        }, 'dsh-fish-ui: pointer physics')
         ctx.inject(['theme'], scope => {
           scope.effect(() => {
             dcTheme = scope.theme

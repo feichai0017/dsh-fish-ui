@@ -1,8 +1,8 @@
 {
   "name": "dsh-fish-ui",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
-  "description": "Deep Fish UI — a dot-matrix theme for DeepSeek Harness: fish hero artwork, whale-blue accents, reading layout, Maple Mono NF CN type, composer glow and fish-finish toggles.",
+  "description": "Deep Fish UI — a Catppuccin-themed, dot-matrix DSH theme: fish hero artwork, aurora background, pointer physics, thinking/text motion, Maple Mono NF CN type and fish-finish toggles.",
   "license": "MIT",
   "author": "Guocheng Song",
   "repository": {
