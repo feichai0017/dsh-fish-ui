@@ -78,26 +78,50 @@ function sceneEffects(React: ReactRuntime, scene: Scene, gradientId: string) {
       h('g', null, ...shimmer))
   }
   const rings = (color: string, width: number) => h('g', { fill: 'none', stroke: color, strokeWidth: width },
-    h('ellipse', { cx: 198, cy: 201, rx: 53, ry: 6.2 }),
-    h('ellipse', { cx: 198, cy: 201, rx: 43, ry: 4.6, opacity: .62 }))
+    h('ellipse', { cx: 331, cy: 201, rx: 53, ry: 6.2 }),
+    h('ellipse', { cx: 331, cy: 201, rx: 43, ry: 4.6, opacity: .62 }))
   return layers(h('g', { className: 'df-jade-ripples' }, rings('#e8ffdf', .62)),
-    h('g', null, rings('#f2ffe1', 1.8), line('M156 198q32-7 63-1', '#284f47', .75, .8)))
+    h('g', null, rings('#f2ffe1', 1.8), line('M289 198q32-7 63-1', '#284f47', .75, .8)))
 }
 
 const glint: Record<Scene, string> = {
   atlas: '#b3edff', aurora: '#9bffcf', orbit: '#ffd4ae', dunes: '#ffe0a0', rain: '#9cdbff', lotus: '#f5ffe7',
 }
 
+// Portrait panes should keep the subject in frame (especially the narrow crescent).
+const focusX: Record<Scene, number> = { atlas: 355, aurora: 355, orbit: 454, dunes: 421, rain: 410, lotus: 398 }
+
 export function dfCreateScenePlate(React: ReactRuntime) {
   return React.memo(function FishPlate({ scene, className, align = 'xMidYMid slice', live = false }: PlateProps) {
     const id = 'df-scene-glint-' + React.useId().replace(/[^a-zA-Z0-9_-]/g, '')
     const h = React.createElement
-    return h('svg', { className, 'data-df-painting': scene, viewBox: '0 0 600 300', preserveAspectRatio: align, 'aria-hidden': true, focusable: false },
-      h('g', { className: 'df-scene-print' },
-        h('image', { href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' })),
-      live && h('defs', null, h('radialGradient', { id }, h('stop', { offset: 0, stopColor: glint[scene], stopOpacity: .8 }),
-        h('stop', { offset: .35, stopColor: glint[scene], stopOpacity: .35 }), h('stop', { offset: 1, stopColor: glint[scene], stopOpacity: 0 }))),
-      live && sceneEffects(React, scene, id))
+    const ref = React.useRef<SVGSVGElement>(null)
+    React.useLayoutEffect(() => {
+      const node = ref.current
+      if (!live || !node || typeof ResizeObserver === 'undefined') return
+      const crop = (width: number, height: number) => {
+        if (width <= 0 || height <= 0) return
+        const span = Math.min(600, 300 * width / height)
+        const left = Math.min(600 - span, Math.max(0, focusX[scene] - span / 2))
+        node.setAttribute('viewBox', left + ' 0 ' + span + ' 300')
+      }
+      const rect = node.getBoundingClientRect()
+      crop(rect.width, rect.height)
+      const observer = new ResizeObserver(entries => {
+        const box = entries[0]?.contentRect
+        if (box) crop(box.width, box.height)
+      })
+      observer.observe(node)
+      return () => observer.disconnect()
+    }, [scene, live])
+    const artwork = h('g', { className: 'df-scene-print' },
+      h('image', { href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }))
+    return h('svg', { className, ref, 'data-df-painting': scene, viewBox: '0 0 600 300', preserveAspectRatio: align, 'aria-hidden': true, focusable: false },
+      artwork,
+      live && h('svg', { width: 600, height: 300, viewBox: '0 0 600 300' },
+        h('defs', null, h('radialGradient', { id }, h('stop', { offset: 0, stopColor: glint[scene], stopOpacity: .8 }),
+          h('stop', { offset: .35, stopColor: glint[scene], stopOpacity: .35 }), h('stop', { offset: 1, stopColor: glint[scene], stopOpacity: 0 }))),
+        sceneEffects(React, scene, id)))
   })
 }
 
@@ -156,7 +180,7 @@ body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { --df-print-opacity: 
 .fish-backdrop .df-scene-print { opacity: var(--df-print-opacity); }
 .df-scene-arrival, .df-scene-weather { pointer-events: none; }
 .df-scene-arrival { opacity: 0; transform-box: view-box; }
-.df-scene-arrival[data-df-arrival="lotus"] { transform-origin: 33% 67%; }
+.df-scene-arrival[data-df-arrival="lotus"] { transform-origin: 55.17% 67%; }
 .df-scene-arrival[data-df-arrival="rain"] { transform-origin: 70% 59.7%; }
 .df-scene-arrival[data-df-arrival="atlas"] [data-df-sweep]:last-child { opacity: .13; }
 .df-scene-weather { opacity: 0; }
@@ -168,7 +192,7 @@ html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-t
   .df-orbital-stars { animation: df-starlight calc(var(--df-weather-time) * .4) ease-in-out infinite alternate; }
   .df-sand-grains { animation: df-sand-whisper calc(var(--df-weather-time) * .4) linear infinite; }
   .df-harbour-rain { animation: df-harbour-rain var(--df-rain-time) linear infinite; }
-  .df-jade-ripples { transform-box: view-box; transform-origin: 33% 67%; animation: df-jade-ripple calc(var(--df-weather-time) * .36) ease-out infinite; }
+  .df-jade-ripples { transform-box: view-box; transform-origin: 55.17% 67%; animation: df-jade-ripple calc(var(--df-weather-time) * .36) ease-out infinite; }
   html:is([data-fish-pace="still"],[data-fish-paused]) .df-scene-weather * { animation-play-state: paused; }
 }
 html[data-fish-pace="still"] .df-scene-arrival, html[data-fish-paused] .df-scene-arrival { display: none; }
