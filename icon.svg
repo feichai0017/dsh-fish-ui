@@ -1,17 +1,46 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128">
+  <title>Deep Fish UI</title>
   <defs>
-    <linearGradient id="ocean" x1=".1" y1="0" x2=".85" y2="1">
-      <stop stop-color="#718DFF"/><stop offset=".48" stop-color="#4D6BFE"/><stop offset="1" stop-color="#243EAA"/>
+    <linearGradient id="abyss" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#172040"/>
+      <stop offset=".58" stop-color="#101632"/>
+      <stop offset="1" stop-color="#0B1029"/>
     </linearGradient>
-    <linearGradient id="pearl" x1=".85" y1=".2" x2=".2" y2=".9">
-      <stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#D3EDFF"/>
+    <linearGradient id="cobalt" x1=".1" y1="0" x2=".9" y2=".9">
+      <stop stop-color="#7189FF"/>
+      <stop offset=".43" stop-color="#4D6BFE"/>
+      <stop offset="1" stop-color="#405BE8"/>
+    </linearGradient>
+    <linearGradient id="pearl" x1="0" y1="1" x2="1" y2="0">
+      <stop stop-color="#FFE5C0"/>
+      <stop offset="1" stop-color="#FFFAEC"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="16" fill="url(#ocean)"/>
-  <rect x=".5" y=".5" width="63" height="63" rx="15.5" fill="none" stroke="#BFD4FF" stroke-opacity=".42"/>
-  <path d="M27 28Q28 18 40 12L38 23ZM31 39Q29 45 32 50Q40 43 40 33Z" fill="#9DD7FF"/>
-  <path d="M18 36C25 25 39 16 54 17C52 32 39 43 21 43C16 47 11 49 6 49C9 44 12 40 15 38C11 34 9 29 10 24C15 26 18 31 18 36Z" fill="url(#pearl)"/>
-  <path d="M23 39C31 37 36 33 40 29" fill="none" stroke="#6EA4F9" stroke-width="1.8" stroke-linecap="round"/>
-  <circle cx="46.3" cy="23.4" r="1.8" fill="#243EAA"/>
-  <path d="M11 53Q18 52 24 48" fill="none" stroke="#9DD7FF" stroke-width="1.7" stroke-linecap="round"/>
+  <rect width="128" height="128" rx="28" fill="url(#abyss)"/>
+  <rect x=".5" y=".5" width="127" height="127" rx="27.5"
+        fill="none" stroke="#A9B7EB" stroke-opacity=".17"/>
+  <g transform="translate(0 -1.4)">
+    <path fill="url(#cobalt)" fill-rule="evenodd" d="
+      M116 43.4
+      C107.5 38.3 96.3 36.2 86.4 37.1
+      C73.9 30.4 63.3 29.2 53.8 33.5
+      C62.1 35.8 64.2 40.1 59.7 48.2
+      C66.2 43.5 72.7 40.3 81.1 38.4
+      C66.2 43.9 50.4 57.3 39.3 74.3
+      C41.7 64.8 36.5 61.1 30.3 57.4
+      C21.4 52.3 14.7 46.8 12.4 37.2
+      C10.8 50.5 14.6 60.7 21.8 67.9
+      C28.4 74.4 29.4 79.4 26.8 87.2
+      C24.3 94.8 20 100.1 15.1 103.1
+      C27.4 98.2 33.7 91 43.2 80.8
+      C62.3 60.6 74.3 54.1 88.7 55.4
+      C100.5 56.5 110.2 52.4 116 43.4 Z
+      M106.1 45 A2.45 2.45 0 1 0 101.2 45 A2.45 2.45 0 1 0 106.1 45 Z"/>
+    <path fill="url(#pearl)" d="
+      M48.8 82.3
+      C63.4 69.6 73.1 62.6 86.7 60.2
+      C100.3 57.9 107.8 54.5 112.8 49
+      C105.7 62.4 94.3 70.1 77.9 73.7
+      C65.3 76.3 56.6 77.1 48.8 82.3 Z"/>
+  </g>
 </svg>

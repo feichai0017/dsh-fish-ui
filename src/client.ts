@@ -1,3 +1,4 @@
+import fishLogo from '../icon.svg'
 import { dfCreateScenePlate, dfPlaySceneArrival, DF_SCENE_ART_CSS } from './scene-art'
 import { installModelStudio } from './model-studio'
 import { dfInstallReplyMotion } from './reply-motion'
@@ -83,7 +84,6 @@ window.__ModuleLoader__.load({
     }
 
     const path = (d: string, props?: React.SVGProps<SVGPathElement>) => h('path', { d, ...props })
-    const circle = (cx: number, cy: number, r: number, props?: React.SVGProps<SVGCircleElement>) => h('circle', { cx, cy, r, ...props })
     const FISH_ICONS = {
       fish: ['M2 8.5 7 11c3-6 10-6.5 14 1-4.5 7.5-11 7-14 1L2 15.5Z M14 7.2c-2 3.1-2 6.5 0 9.6 M17.2 11.2h.1', 'M7 12c3-6 10-6 14 0-4 7-11 7-14 0Z'],
       contour: ['M2 14c0-5 3-6 6-6s3-5 7-5 7 4 7 8-5 4-7 7-6 4-9 2-4-3-4-6Z M6 14c0-3 4-3 6-6s6-1 6 2-3 3-5 6-7 2-7-2Z M10 14l4-3', 'M2 14c0-5 3-6 6-6s3-5 7-5 7 4 7 8-5 4-7 7-6 4-9 2-4-3-4-6Z'],
@@ -160,11 +160,7 @@ window.__ModuleLoader__.load({
         + root + '[data-fish-icons]' + target + '>use{visibility:hidden}}'
     }
     function FishBrand() {
-      return h('svg', { viewBox: '0 0 64 64', className: 'fish-logo', 'aria-hidden': true, focusable: false },
-        path('M27 28Q28 18 40 12L38 23ZM31 39Q29 45 32 50Q40 43 40 33Z', { fill: '#9DD7FF' }),
-        path('M18 36C25 25 39 16 54 17C52 32 39 43 21 43C16 47 11 49 6 49C9 44 12 40 15 38C11 34 9 29 10 24C15 26 18 31 18 36Z', { fill: '#F5FBFF' }),
-        path('M23 39C31 37 36 33 40 29M11 53Q18 52 24 48', { fill: 'none', stroke: '#8DC0FF', strokeWidth: 2, strokeLinecap: 'round' }),
-        circle(46.3, 23.4, 2.1, { fill: '#243EAA' }))
+      return h('img', { className: 'fish-brand', src: fishLogo, alt: '', draggable: false })
     }
     function FishIcon({ name, size = 18 }: { name: keyof typeof FISH_ICONS; size?: number }) {
       const [outline, tone] = FISH_ICONS[name]
@@ -2865,19 +2861,9 @@ body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { opacity: .82; }
 }
 .df-sheet-head { flex: none; padding: 12px 17px; }
 .df-sheet-title { display: inline-flex; align-items: center; gap: 9px; font-size: 14px; letter-spacing: -.02em; }
-.fish-brand {
-  flex: none;
-  width: 27px;
-  height: 27px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 9px;
-  background: linear-gradient(145deg, #718DFF, #4D6BFE 48%, #243EAA);
-  box-shadow: inset 0 0 0 1px rgb(191 212 255 / .42);
-}
-.fish-logo { display: block; width: 100%; height: 100%; }
+.fish-brand { display: block; flex: none; width: 27px; height: 27px; object-fit: contain; }
 .df-foot-button { gap: 8px; }
-.df-foot-button .fish-brand { width: 22px; height: 22px; border-radius: 7px; }
+.df-foot-button .fish-brand { width: 22px; height: 22px; }
 .fish-foot-scene { display: inline-flex; margin-inline-start: auto; color: var(--df-accent); }
 .df-sheet-close {
   display: inline-grid; place-items: center; width: 28px; height: 28px;
@@ -3276,7 +3262,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       if (!open) return null
       const panel = h('div', { key: 'panel', className: 'df-sheet-panel', ref: panelRef, role: 'dialog', 'aria-modal': 'true', tabIndex: -1, 'aria-label': dfUsesChinese() ? DF_COPY.zh.dialog : DF_COPY.en.dialog }, [
         h('div', { key: 'head', className: 'df-sheet-head' }, [
-          h('span', { key: 'title', className: 'df-sheet-title' }, h('span', { className: 'fish-brand' }, h(FishBrand)), 'Deep Fish UI'),
+          h('span', { key: 'title', className: 'df-sheet-title' }, h(FishBrand), 'Deep Fish UI'),
           h('button', {
             key: 'close',
             type: 'button',
@@ -3454,7 +3440,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           showDots || showRail
             ? h('canvas', { key: 'dots', ref: canvasRef, className: 'df-foot-dots', 'aria-hidden': 'true' })
             : null,
-          h('span', { key: 'icon', className: 'fish-brand' }, h(FishBrand)),
+          h(FishBrand, { key: 'icon' }),
           wide ? h('span', { key: 'label', className: 'df-foot-label' }, 'Deep Fish UI') : null,
           wide ? h('span', { key: 'scene', className: 'fish-foot-scene', title: dfUsesChinese() ? SCENES[values.scene].zh : SCENES[values.scene].en },
             h(FishIcon, { name: SCENES[values.scene].icon, size: 16 })) : null,

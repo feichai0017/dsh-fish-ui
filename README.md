@@ -1,4 +1,4 @@
-<img src="./icon.png" alt="Deep Fish UI" width="72" height="72">
+<img src="https://raw.githubusercontent.com/feichai0017/dsh-fish-ui/v0.6.1/icon.png" alt="Deep Fish UI" width="72" height="72">
 
 # Deep Fish UI
 

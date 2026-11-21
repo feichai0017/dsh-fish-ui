@@ -1,6 +1,6 @@
 {
   "name": "dsh-fish-ui",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "type": "module",
   "description": "Live model and reasoning controls, six illustrated conversation scenes and first-reply motion for DeepSeek Harness.",
   "license": "MIT",
@@ -65,7 +65,7 @@
     "typescript": "~5.9.3"
   },
   "scripts": {
-    "build": "npm run check && esbuild src/index.ts --platform=node --packages=external --format=esm --target=node22 --outfile=dist/index.js && esbuild src/client.ts --bundle --format=iife --target=es2022 --loader:.webp=dataurl --loader:.jpg=dataurl --loader:.png=dataurl --outfile=dist/client.js",
+    "build": "npm run check && esbuild src/index.ts --platform=node --packages=external --format=esm --target=node22 --outfile=dist/index.js && esbuild src/client.ts --bundle --format=iife --target=es2022 --loader:.svg=dataurl --loader:.webp=dataurl --loader:.jpg=dataurl --loader:.png=dataurl --outfile=dist/client.js",
     "check": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm run build"
   }
