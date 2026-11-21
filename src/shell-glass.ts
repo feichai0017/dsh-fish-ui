@@ -1,5 +1,9 @@
 // These surfaces sit outside the conversation artwork. Tint their paint with the same
 // scene swatches without changing window drag, DockKit stacking, or editor geometry.
+const sidebar = 'div:has(> [data-slot="sidebar"])'
+const header = 'header[data-window-drag]:has(> [data-conversation-header-leading])'
+const dockCell = '[data-sidebar-right-panel] :is([data-dockkit-pane], [data-dockkit-empty], [data-dockkit-float])'
+
 export const shellGlassCss = `
 :root[data-fish-pace] body {
   --df-shell-scene: var(--df-scene-glow, #9cbfff);
@@ -14,6 +18,7 @@ export const shellGlassCss = `
   --df-shell-highlight: var(--df-shell-reflection);
   --df-shell-shadow: rgb(31 44 70 / .12);
   --df-shell-film: linear-gradient(155deg, color-mix(in srgb, var(--df-shell-scene) 10%, transparent), transparent 45%);
+  --df-shell-chrome-fill: var(--df-shell-surface);
   --df-shell-card-fill: var(--df-shell-raised);
 }
 :root[data-fish-pace] body[data-ds-dark-theme] {
@@ -38,9 +43,9 @@ export const shellGlassCss = `
 
 /* The sidebar column paints macOS vibrancy under a transparent sidebar root. Set its
    native tokens locally, including the Windows caption row's own paint. */
-:root[data-fish-pace] div:has(> [data-slot="sidebar"]) {
-  --dsw-specific-sidebar-fill: var(--df-shell-surface);
-  --dsw-specific-sidebar-tint: var(--df-shell-surface);
+:root[data-fish-pace] ${sidebar} {
+  --dsw-specific-sidebar-fill: var(--df-shell-chrome-fill);
+  --dsw-specific-sidebar-tint: var(--df-shell-chrome-fill);
   --dsw-specific-sidebar-wash-top: color-mix(in srgb, var(--df-shell-scene) 11%, transparent);
   --dsw-specific-sidebar-wash-bottom: color-mix(in srgb, var(--df-shell-depth) 5%, transparent);
   --dsw-specific-sidebar-wash-top-clear: transparent;
@@ -78,9 +83,9 @@ export const shellGlassCss = `
 :root[data-fish-pace] [data-rightbar-col] {
   background: var(--df-shell-surface);
 }
-:root[data-fish-pace] [data-sidebar-right-panel] :is([data-dockkit-pane], [data-dockkit-empty], [data-dockkit-float]),
-:root[data-fish-pace] header[data-window-drag]:has(> [data-conversation-header-leading]) {
-  background: var(--df-shell-film), var(--df-shell-surface);
+:root[data-fish-pace] ${dockCell},
+:root[data-fish-pace] ${header} {
+  background: var(--df-shell-film), var(--df-shell-chrome-fill);
   border-color: var(--df-shell-line);
 }
 /* Files paints its own opaque navigator, search bar and file list over the dock
@@ -116,10 +121,49 @@ export const shellGlassCss = `
     0 0 0 3px var(--df-card-focus), 0 4px 16px -8px var(--df-shell-shadow), 0 10px 32px -10px var(--df-card-halo);
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-fish-pace]:not(.df-off-glass) body {
+    --df-shell-chrome-fill: color-mix(in srgb, var(--df-shell-surface), transparent var(--df-glass-transparency, 6%));
+    --df-shell-card-fill: color-mix(in srgb, var(--df-shell-raised), transparent var(--df-glass-transparency, 6%));
+    --df-shell-filter: blur(var(--df-glass-blur, 18px)) saturate(1.12);
+    --df-shell-backdrop-content: '';
+    --df-shell-files-base: transparent;
+    --df-shell-track-fill: radial-gradient(ellipse at 85% 0%, color-mix(in srgb, var(--df-shell-scene) 32%, var(--df-shell-surface)), var(--df-shell-surface) 85%);
+  }
   :root[data-fish-pace]:not(.df-off-glass) [data-composer-card] {
-    --df-shell-card-fill: color-mix(in srgb, var(--df-shell-raised) 94%, transparent);
-    -webkit-backdrop-filter: blur(18px) saturate(1.12);
-    backdrop-filter: blur(18px) saturate(1.12);
+    -webkit-backdrop-filter: var(--df-shell-filter);
+    backdrop-filter: var(--df-shell-filter);
+  }
+  /* Keep fixed caption buttons and floating DockKit panels anchored to the window.
+     Only their paint layer receives a filter. Host drawer/float positioning wins. */
+  @layer df-glass-anchors {
+    :where(:root[data-fish-pace]:not(.df-off-glass)) :where(${sidebar}, ${header}, ${dockCell}) { position: relative; }
+  }
+  :root[data-fish-pace]:not(.df-off-glass) [data-slot="sidebar"] > div {
+    position: relative;
+    background: transparent;
+  }
+  :root[data-fish-pace]:not(.df-off-glass) :is(${header}, ${dockCell}) {
+    isolation: isolate;
+  }
+  :root[data-fish-pace]:not(.df-off-glass) :is(${sidebar}, ${header}, ${dockCell})::before {
+    content: var(--df-shell-backdrop-content);
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    -webkit-backdrop-filter: var(--df-shell-filter);
+    backdrop-filter: var(--df-shell-filter);
+  }
+  :root[data-fish-pace]:not(.df-off-glass) :is(${header}, ${dockCell})::before {
+    z-index: -1;
+  }
+  /* DockKit paints its cells above the track. Give that material depth and let
+     the native file navigator show the cell through, including in overlay mode. */
+  :root[data-fish-pace]:not(.df-off-glass) [data-rightbar-col] {
+    background: var(--df-shell-track-fill);
+  }
+  :root[data-fish-pace]:not(.df-off-glass) [data-sidebar-right-panel] :is([data-files-page], [data-files-state], [data-sidebar-right-guide]) {
+    --dsw-alias-bg-base: var(--df-shell-files-base);
   }
 }
 :root[data-fish-pace]:not(.df-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
@@ -129,10 +173,10 @@ export const shellGlassCss = `
 :root[data-fish-pace]:not(.df-off-fishglow) [data-composer-card]:focus-within {
   --df-card-halo: color-mix(in srgb, var(--df-shell-accent) 32%, transparent);
 }
-@media (prefers-reduced-motion: no-preference) and (not (prefers-reduced-transparency: reduce)) {
+@media (prefers-reduced-motion: no-preference) {
   :root[data-fish-pace]:not(.df-off-glass,.df-off-focusring,.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused])
     [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus)::before {
-    content: '';
+    content: var(--df-shell-glint-content, '');
     position: absolute;
     pointer-events: none;
     top: 0;
@@ -148,15 +192,18 @@ export const shellGlassCss = `
   32% { opacity: 1; }
   100% { opacity: 0; transform: translateX(145%); }
 }
-@media (prefers-reduced-transparency: reduce) {
-  :root[data-fish-pace] body {
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root[data-fish-pace] body,
+  :root[data-fish-pace]:not(.df-off-glass) body {
+    --df-shell-card-fill: var(--df-shell-raised);
+    --df-shell-chrome-fill: var(--df-shell-surface);
+    --df-shell-files-base: var(--df-shell-surface);
+    --df-shell-track-fill: var(--df-shell-surface);
+    --df-shell-filter: none;
+    --df-shell-backdrop-content: none;
+    --df-shell-glint-content: none;
     --df-shell-film: none;
     --df-shell-highlight: transparent;
-  }
-  :root[data-fish-pace]:not(.df-off-glass) [data-composer-card] {
-    --df-shell-card-fill: var(--df-shell-raised);
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
   }
   :root[data-fish-pace] div:has(> [data-slot="sidebar"]),
   :root[data-fish-pace][data-platform="darwin"] div:has(> [data-slot="sidebar"]) {

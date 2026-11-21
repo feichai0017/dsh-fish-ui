@@ -39,15 +39,15 @@ ${panel} {
 }
 ${panel}:dir(rtl) { --df-command-indicator: -2px; }
 
-/* Keep at least 98% ink-blocking pigment. Text remains readable even when
-   a nested compositor has no backdrop available to sample. */
+/* Menu material has its own controls. Its default keeps 98% pigment, even
+   when the composer behind it has been set to clear glass. */
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root:not(.df-off-glass) ${panel} {
     background:
       linear-gradient(155deg, color-mix(in srgb, var(--df-command-accent) 4%, transparent), transparent 55%),
-      color-mix(in srgb, var(--df-command-paper) 98%, transparent);
-    -webkit-backdrop-filter: blur(20px) saturate(110%);
-    backdrop-filter: blur(20px) saturate(110%);
+      color-mix(in srgb, var(--df-command-paper), transparent var(--df-menu-transparency, 2%));
+    -webkit-backdrop-filter: blur(var(--df-menu-blur, 20px)) saturate(110%);
+    backdrop-filter: blur(var(--df-menu-blur, 20px)) saturate(110%);
   }
 }
 ${panel} [role="presentation"] {
@@ -72,7 +72,7 @@ ${panel}[data-menu-phase="enter"] > * { animation: none; }
     animation: df-command-settle 145ms cubic-bezier(.22,.72,.24,1);
   }
 }
-@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
   :root:not(.df-off-glass) ${panel} {
     background: var(--df-command-paper);
     -webkit-backdrop-filter: none;

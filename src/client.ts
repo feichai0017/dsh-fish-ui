@@ -3,6 +3,8 @@ import { dfCreateScenePlate, dfPlaySceneArrival, DF_SCENE_ART_CSS } from './scen
 import { installModelStudio } from './model-studio'
 import { shellGlassCss } from './shell-glass'
 import { commandGlassCss } from './command-glass'
+import { createGlassControls, glassControlsCss } from './glass-controls'
+import { GLASS_KEYS, GLASS_RANGES, validGlassValue, type GlassKey, type GlassValues } from './glass-settings'
 import { dfInstallReplyMotion } from './reply-motion'
 
 /**
@@ -28,6 +30,7 @@ window.__ModuleLoader__.load({
   factory(require) {
     const React = require('react')
     const h = React.createElement
+    const GlassControls = createGlassControls(React)
 
     // Scene artwork and interface ink are independent profile preferences.
     type ColorPair = [string, string]
@@ -2239,12 +2242,14 @@ body {
       'reading', 'code', 'fishFont', 'fishGlow', 'fishMotion', 'fishCode',
       'catppuccin', 'aurora', 'cursor', 'textMotion', 'hostIcons',
     ] as const
-    type FishSettings = Readonly<Record<typeof DF_FLAGS[number], boolean> & { scene: SceneId; sceneMotion: string; iconStyle: string; accentColor: string }>
+    type FishSettings = Readonly<Record<typeof DF_FLAGS[number], boolean> & GlassValues & { scene: SceneId; sceneMotion: string; iconStyle: string; accentColor: string }>
     const DF_DEFAULT_SETTINGS = Object.freeze({
       ...Object.fromEntries(DF_FLAGS.map(key => [key, true])),
+      ...Object.fromEntries(GLASS_KEYS.map(key => [key, GLASS_RANGES[key].default])),
       scene: 'atlas', sceneMotion: 'calm', iconStyle: 'duotone', accentColor: BRAND_BLUE,
     }) as FishSettings
     function validSetting(key: string, value: unknown) {
+      if (Object.hasOwn(GLASS_RANGES, key)) return validGlassValue(key as GlassKey, value)
       if (key === 'accentColor') return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
       if (Object.hasOwn(STUDIO_CHOICES, key)) return typeof value === 'string' && STUDIO_CHOICES[key as keyof typeof STUDIO_CHOICES].includes(value)
       return (DF_FLAGS as readonly string[]).includes(key) && typeof value === 'boolean'
@@ -2260,6 +2265,51 @@ body {
     let dfTheme: FishThemeService | null = null
     const dfThemeLayers = new Map<string, () => void>()
     let dfMounted = false
+    const glassDrafts = new Map<GlassKey, { owner: symbol; value: number }>()
+
+    function paintGlassValue(key: GlassKey) {
+      if (!dfMounted) return
+      const { css, unit } = GLASS_RANGES[key]
+      const value = glassDrafts.get(key)?.value ?? dfSettings[key]
+      document.documentElement.style.setProperty(css, value + unit)
+    }
+
+    // Both settings entry points can mount at once. Only the editor that owns a
+    // draft may cancel it, and a delayed save may only release its own preview.
+    function createGlassEditor() {
+      const owner = Symbol()
+      const cancel = (key: GlassKey) => {
+        if (glassDrafts.get(key)?.owner !== owner) return
+        glassDrafts.delete(key)
+        paintGlassValue(key)
+      }
+      return {
+        cancel,
+        preview(key: GlassKey, value: number) {
+          if (!dfSettings.glass || !dfSnapshot.writable || !validGlassValue(key, value)) return
+          glassDrafts.set(key, { owner, value })
+          paintGlassValue(key)
+        },
+        async commit(key: GlassKey, value: number) {
+          const draft = glassDrafts.get(key)
+          if (draft?.owner !== owner || !dfWrite || !dfSettings.glass || !dfSnapshot.writable
+            || !validGlassValue(key, value) || dfSettings[key] === value) {
+            cancel(key)
+            return
+          }
+          const saving = { owner: Symbol(), value }
+          glassDrafts.set(key, saving)
+          try {
+            await dfWrite({ [key]: value })
+          } finally {
+            if (glassDrafts.get(key) === saving) {
+              glassDrafts.delete(key)
+              paintGlassValue(key)
+            }
+          }
+        },
+      }
+    }
 
     const dfReadLegacy = () => {
       try {
@@ -2356,6 +2406,8 @@ body {
     }
     function dfApplySettings() {
       if (!dfMounted) return
+      if (!dfSettings.glass || !dfSnapshot.writable) glassDrafts.clear()
+      GLASS_KEYS.forEach(paintGlassValue)
       for (const [key, className] of Object.entries(DF_OFF_CLASS)) {
         document.documentElement.classList.toggle(className, dfSettings[key] === false)
       }
@@ -3061,6 +3113,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       const settings = useDfSettings()
       const state = settings.values
       const [tab, setTab] = React.useState('scenes')
+      const glassEditor = React.useMemo(createGlassEditor, [])
       const scene = SCENES[state.scene]
       const disabled = settings.status !== 'ready' || !settings.writable || settings.pending
       const update = (key: keyof FishSettings) => (value: boolean) => dfSetSetting(key, value)
@@ -3089,6 +3142,14 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         : !settings.writable ? (zh ? '此配置只读。' : 'These preferences are read-only.')
         : settings.pending ? (zh ? '正在保存…' : 'Saving…') : ''
       const details = [
+        group(zh ? 'Fish 字体与质感' : 'Fish finish', [
+          item('glass'),
+          h(GlassControls, {
+            key: 'glass-controls', values: state, zh, disabled: disabled || !state.glass, ...glassEditor,
+            children: h(FishPlate, { scene: state.scene }),
+          }),
+          item('fishFont'), item('fishGlow'), item('fishMotion'), item('fishCode'),
+        ]),
         group(zh ? '阅读' : 'Reading', [item('reading'), item('code')]),
         group(copy.groups.hero, [
           item('hero'), item('field'), item('wave'), item('ripple'),
@@ -3104,9 +3165,6 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         ]),
         group(copy.groups.accents, [
           item('bold'), item('focusRing'), item('diff'),
-        ]),
-        group(zh ? 'Fish 字体与质感' : 'Fish finish', [
-          item('glass'), item('fishFont'), item('fishGlow'), item('fishMotion'), item('fishCode'),
         ]),
         group(zh ? '配色与交互' : 'Color & interaction', [
           item('catppuccin'), item('hostIcons'), item('cursor'), item('textMotion'),
@@ -3175,7 +3233,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         if (!open) return undefined
         const previousFocus = document.activeElement
         const panel = panelRef.current
-        const focusable = () => panel === null ? [] : [...panel.querySelectorAll<HTMLElement>('button:not(:disabled), input:checked:not(:disabled), input[type="color"]:not(:disabled), [href], [tabindex="0"]')]
+        const focusable = () => panel === null ? [] : [...panel.querySelectorAll<HTMLElement>('button:enabled, input:enabled:is(:checked, [type="color"], [type="range"]), [href], [tabindex="0"]')]
         ;(focusable()[0] || panel)?.focus()
         const onKeyDown = (event: KeyboardEvent) => {
           if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); dfSetSheetOpen(false) }
@@ -3398,6 +3456,8 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           dfApplySettings()
           return () => {
             dfMounted = false
+            glassDrafts.clear()
+            GLASS_KEYS.forEach(key => document.documentElement.style.removeProperty(GLASS_RANGES[key].css))
             dfWrite = null
             dfSetSheetOpen(false)
             for (const className of Object.values(DF_OFF_CLASS)) document.documentElement.classList.remove(className)
@@ -3429,7 +3489,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
           style.textContent = [
             FISH_FX_CSS, FISH_STUDIO_CSS, DF_SCENE_ART_CSS, productIconCss(),
-            shellGlassCss, commandGlassCss,
+            shellGlassCss, commandGlassCss, glassControlsCss,
           ].join('\n')
           document.head.append(style)
           return () => style.remove()

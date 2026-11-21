@@ -10,7 +10,9 @@ Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fi
 
 The sidebar, top bar, tools pane and composer pick up a tint from the current painting. The accent you choose marks focus and selection. The `/` command and `@` reference menus use a denser surface to keep the conversation behind them out of the way. Arrow keys move the accent marker to the current option.
 
-Toggle **Frosted glass** under **Interface details → Fish finish**. The menus also use a solid surface when the system requests reduced transparency or higher contrast. With motion enabled, a newly selected painting gently settles into view.
+Under **Interface details → Fish finish**, turn on **Frosted glass** and choose **Interface** or **Command menu**. Drag **Transparency** (0–70%) or **Blur** (0–40 px) to see the result on the sample and the live interface. Release to save to the current profile. Arrow keys also adjust the sliders.
+
+The interface starts at 6% transparency and 18 px blur. The command menu has its own settings and starts at 2% transparency and 20 px blur. The menus use a solid surface when the system requests reduced transparency or higher contrast. With motion enabled, a newly selected painting gently settles into view.
 
 ## Model and reasoning picker
 
