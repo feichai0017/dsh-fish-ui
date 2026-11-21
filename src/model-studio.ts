@@ -90,10 +90,12 @@ const STUDIO_CSS = `
   --df-ms-ink: var(--df-accent,var(--dsw-alias-brand-primary,#4d6bfe));
   --df-ms-edge: var(--dsw-alias-border-l1,#414550);
   --df-ms-muted: var(--dsw-alias-label-secondary,#929bb0);
+  background:linear-gradient(var(--dsw-alias-bg-base, transparent),var(--dsw-alias-bg-base, transparent)) var(--df-ms-paper,#f5f6fa);
   width:min(436px,calc(100vw - 24px));min-width:0;max-width:min(436px,calc(100vw - 24px));
   max-height:min(470px,calc(100dvh - 80px));padding:6px;gap:1px;border-radius:16px;
   overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;
 }
+body[data-ds-dark-theme] [role="menu"]:has(.df-ms-hero) {--df-ms-paper:#1b1e26}
 .df-ms-hero {
   position:relative;isolation:isolate;overflow:hidden;flex:none;order:-5;
   padding:13px 16px 14px;min-height:102px;border-radius:10px;margin:0 0 5px;
