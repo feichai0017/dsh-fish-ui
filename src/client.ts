@@ -5,6 +5,8 @@ import { dfCreateScenePlate, dfPlaySceneArrival, paintings, setWindowPainting, D
 import { installModelStudio } from './model-studio'
 import { shellGlassCss } from './shell-glass'
 import { installDesktopWorkspacePicker } from './workspace-picker'
+import { installPendingApprovals } from './pending-approvals'
+import { workbenchFinishCss } from './workbench-finish'
 import { commandGlassCss } from './command-glass'
 import { createGlassControls, glassControlsCss } from './glass-controls'
 import { GLASS_KEYS, GLASS_RANGES, validGlassValue, type GlassKey, type GlassValues } from './glass-settings'
@@ -2650,14 +2652,15 @@ body {
         padding: .12em .38em;
         border-radius: 5px;
       }
-      /* Harness stretches plugin title buttons over their entire row using an
-         absolutely positioned pseudo-element. A transformed title becomes
-         its containing block and makes the icon and description miss clicks. */
-      :root:not(.df-off-fishmotion) button:not(:where([data-plugin-panel] *)) {
-        transition: transform .16s ease, box-shadow .16s ease;
-      }
-      :root:not(.df-off-fishmotion) button:not(:where([data-plugin-panel] *)):hover {
-        transform: translateY(-1px);
+      /* Keep native controls and their hit areas stationary. Only independent
+         buttons inside the Fish settings sheet get a physical lift. */
+      @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+        :root:not(.df-off-fishmotion,[data-fish-pace="still"]) .fish-studio button.fish-segment {
+          transition: transform .16s ease, box-shadow .16s ease;
+        }
+        :root:not(.df-off-fishmotion,[data-fish-pace="still"]) .fish-studio button.fish-segment:enabled:hover {
+          transform: translateY(-1px);
+        }
       }
       ::selection {
         background: color-mix(in srgb, var(--fish-ink) 32%, transparent);
@@ -3431,7 +3434,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
           style.textContent = [
             FISH_FX_CSS, FISH_STUDIO_CSS, DF_SCENE_ART_CSS, productIconCss(),
-            shellGlassCss, commandGlassCss, glassControlsCss, studioFinishCss, DF_LAUNCH_CSS,
+            shellGlassCss, commandGlassCss, glassControlsCss, studioFinishCss, workbenchFinishCss, DF_LAUNCH_CSS,
           ].join('\n')
           document.head.append(style)
           return () => style.remove()
@@ -3450,6 +3453,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           }, 'dsh-fish-ui: token layers')
         })
         installDesktopWorkspacePicker(ctx, React)
+        installPendingApprovals(ctx, React)
         installModelStudio(ctx, React)
         dfInstallReplyMotion(React, ctx, dfPlaySceneArrival)
         ctx.inject(['workspaces', 'sessions'], scope => {

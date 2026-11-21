@@ -28,6 +28,14 @@ New configurations start at 22% transparency and 24 px blur for the interface. T
 
 Open the composer's model button. Select a model card, then choose one of the reasoning levels offered for that model. The shaded ridge takes its light from the scene, changes shape with the model and rises with reasoning effort. It moves while the session is thinking or streaming and rests when the session is idle. Use the original model row to search the full provider catalog. Harness applies selections to the current session and reports pending or rejected changes.
 
+Use **Save current as Daily** or **Save current as Deep** in the model menu to remember a provider, model and reasoning level. Both presets live in the current Harness profile. Once saved, select **Daily** or **Deep** in the composer toolbar to apply the combination to that conversation in one click. To replace a preset, select the new combination and save it to the same slot.
+
+## Pending approvals
+
+When Harness is waiting for tool approval, the corresponding conversation shows an **Approval** button in the sidebar. Select it to open that conversation and focus the native approval card. **Needs your attention** in the sidebar footer lists the sessions currently awaiting approval, including sessions in other workspaces. Use the card's own controls to allow or reject the request. The sidebar updates when the request ends.
+
+Active sessions and tabs pick up the current scene's color. Tool steps, message bubbles and plugin groups have distinct reading surfaces. Changing scenes crossfades the full-window painting. Still mode and the system's reduced-motion setting skip these transitions.
+
 ## Scenes
 
 The six original, AI-generated 1280 × 640 paintings ship in the plugin. Landscape references include [USGS seafloor relief](https://www.usgs.gov/media/images/shaded-relief-bathymetry-examples), [NASA lunar imagery](https://science.nasa.gov/moon/image-galleries/moonscapes/) and [Bian Shoumin’s lotus leaves at The Met](https://www.metmuseum.org/art/collection/search/49236).

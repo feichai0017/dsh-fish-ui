@@ -89,22 +89,47 @@ const glint: Record<Scene, string> = {
 
 // Anchor the crop to the subject as the window gets narrower.
 const focusX: Record<Scene, number> = { atlas: 355, aurora: 355, orbit: 454, dunes: 421, rain: 410, lotus: 398 }
+const outgoingPaintings = new WeakMap<HTMLImageElement, HTMLImageElement>()
 
 export function setWindowPainting(image: HTMLImageElement, scene?: Scene) {
   const root = document.documentElement
+  if (!scene || image.dataset.dfPainting !== scene) {
+    const outgoing = outgoingPaintings.get(image)
+    outgoing?.getAnimations().forEach(animation => animation.cancel())
+    outgoing?.remove()
+    outgoingPaintings.delete(image)
+  }
   if (!scene) {
     image.remove()
     root.removeAttribute('data-df-window-scene')
     return
   }
   if (image.dataset.dfPainting !== scene) {
-    image.getAnimations?.().forEach(animation => animation.cancel())
+    const fade = image.isConnected && image.complete && image.naturalWidth > 0 && !document.hidden
+      && root.dataset.fishPace !== 'still' && !root.classList.contains('df-off-fishmotion')
+      && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const outgoing = fade ? image.cloneNode(false) as HTMLImageElement : undefined
+    if (outgoing) {
+      outgoing.className = 'df-window-transition'
+      image.after(outgoing)
+      outgoingPaintings.set(image, outgoing)
+    }
     image.src = paintings[scene]
     image.style.objectPosition = focusX[scene] / 6 + '% 50%'
     image.dataset.dfPainting = scene
-    if (image.isConnected && !document.hidden && root.dataset.fishPace !== 'still'
-        && !root.classList.contains('df-off-fishmotion') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      image.animate?.([{ opacity: .68 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' })
+    if (outgoing) {
+      // Keep the previous painting visible until the incoming artwork can paint.
+      // A newer selection or an unmount cancels this transition synchronously.
+      void image.decode().then(() => {
+        if (outgoingPaintings.get(image) === outgoing && !document.hidden) {
+          return outgoing.animate([{ opacity: 1 }, { opacity: 0 }], {
+            duration: 360, easing: 'ease-in-out', fill: 'forwards',
+          }).finished
+        }
+      }).catch(() => {}).finally(() => {
+        outgoing.remove()
+        if (outgoingPaintings.get(image) === outgoing) outgoingPaintings.delete(image)
+      })
     }
   }
   if (!image.isConnected) document.body.prepend(image)
@@ -205,7 +230,7 @@ html[data-df-window-scene] body[data-ds-dark-theme] {
   --df-reading-edge: 40%;
   --df-welcome-wash: 28%;
 }
-.df-window-painting {
+.df-window-painting, .df-window-transition {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -236,9 +261,11 @@ html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame[data-df-
   --df-rain-time: 3.6s;
 }
 @media (forced-colors: active), (prefers-contrast: more) {
-  .df-window-painting, .fish-backdrop { display: none; }
+  .df-window-painting, .df-window-transition, .fish-backdrop { display: none; }
   html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame) { background: var(--df-reading-paper); }
 }
+html:is(.df-off-fishmotion, [data-fish-pace="still"]) .df-window-transition { display: none; }
+@media (prefers-reduced-motion: reduce) { .df-window-transition { display: none; } }
 .df-scene-arrival, .df-scene-weather { pointer-events: none; }
 .df-scene-arrival { opacity: 0; transform-box: view-box; }
 .df-scene-arrival[data-df-arrival="lotus"] { transform-origin: 55.17% 67%; }
