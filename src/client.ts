@@ -2650,10 +2650,13 @@ body {
         padding: .12em .38em;
         border-radius: 5px;
       }
-      :root:not(.df-off-fishmotion) button {
+      /* Harness stretches plugin title buttons over their entire row using an
+         absolutely positioned pseudo-element. A transformed title becomes
+         its containing block and makes the icon and description miss clicks. */
+      :root:not(.df-off-fishmotion) button:not(:where([data-plugin-panel] *)) {
         transition: transform .16s ease, box-shadow .16s ease;
       }
-      :root:not(.df-off-fishmotion) button:hover {
+      :root:not(.df-off-fishmotion) button:not(:where([data-plugin-panel] *)):hover {
         transform: translateY(-1px);
       }
       ::selection {

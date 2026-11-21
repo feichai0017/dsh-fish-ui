@@ -108,6 +108,21 @@ export const shellGlassCss = `
 ${sceneWindow} div:has(> [data-rightbar-col]) > div:has(+ [data-rightbar-col]) {
   background: transparent;
 }
+/* The plugin list and its detail views share one page. At rest the header
+   shows that same reading surface. As content scrolls underneath, paint only
+   the header's existing sticky backdrop, leaving its drag and click boxes alone. */
+${sceneWindow} [data-plugin-panel] {
+  background-color: var(--df-shell-surface);
+  --dsw-alias-label-tertiary: var(--df-shell-muted);
+}
+${sceneWindow} [data-plugin-bar][data-natural]::before {
+  background: transparent;
+}
+${sceneWindow} [data-plugin-bar][data-natural][data-scrolled]::before {
+  background: color-mix(in srgb, var(--df-shell-surface) 90%, var(--df-shell-chrome-fill));
+  -webkit-backdrop-filter: var(--df-shell-filter, none);
+  backdrop-filter: var(--df-shell-filter, none);
+}
 ${sceneWindow} ${footer} {
   min-height: 8px;
   box-sizing: border-box;
@@ -252,6 +267,9 @@ ${sceneWindow} ${heroChip}:focus-visible {
     --df-window-seat-shade: color-mix(in srgb, var(--df-shell-chrome-fill) 36%, transparent);
     --df-window-control-fill: color-mix(in srgb, var(--df-shell-raised) 62%, transparent);
   }
+  ${sceneGlass} [data-plugin-panel] {
+    background-color: color-mix(in srgb, var(--df-shell-surface), transparent min(var(--df-glass-transparency, 22%), 22%));
+  }
   ${sceneGlass} :is(${sidebar}, ${header}, ${dockCell}, [data-rightbar-col], ${footer}) {
     background: var(--df-window-backing);
   }
@@ -366,6 +384,9 @@ ${sceneWindow} ${heroChip}:focus-visible {
     --df-window-backing: var(--df-shell-surface);
     --df-window-seat-shade: var(--df-shell-surface);
     --df-window-control-fill: var(--df-shell-raised);
+  }
+  ${sceneGlass} [data-plugin-panel] {
+    background-color: var(--df-shell-surface);
   }
 }
 @media (forced-colors: active) {
