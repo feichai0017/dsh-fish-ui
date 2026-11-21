@@ -201,40 +201,40 @@ export const glassControlsCss = `
   .df-glass-solid-note { display: inline; }
 }
 .df-glass-sample {
-  --df-sample-pigment: calc(100% - var(--df-glass-transparency, 6%));
-  --df-sample-blur: var(--df-glass-blur, 18px);
+  --df-sample-pigment: calc(100% - var(--df-glass-transparency, 22%));
+  --df-sample-blur: var(--df-glass-blur, 24px);
   --df-sample-film: var(--df-shell-film, none);
-  --df-sample-saturation: 1.12;
+  --df-sample-paper: var(--df-shell-raised, var(--fish-panel));
   position: relative; isolation: isolate; overflow: hidden; display: grid; place-items: center;
-  min-height: 65px; border-radius: 7px; background: var(--df-shell-surface, var(--fish-well));
+  min-height: 78px; border-radius: 9px; background: var(--df-shell-surface, var(--fish-well));
 }
 .df-glass-sample[data-material="menu"] {
   --df-sample-pigment: calc(100% - var(--df-menu-transparency, 2%));
   --df-sample-blur: var(--df-menu-blur, 20px);
-  --df-sample-saturation: 1.1;
-  --df-sample-film: linear-gradient(155deg, color-mix(in srgb, var(--df-accent) 4%, transparent), transparent 55%);
+  --df-sample-film: var(--df-command-film, none);
+  --df-sample-paper: var(--df-command-paper, var(--fish-panel));
 }
 .df-glass-sample > svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
 .df-glass-face {
-  position: relative; display: flex; align-items: center; gap: 7px; width: min(61%, 215px); min-height: 35px; padding: 3px 10px;
-  border: 1px solid var(--df-shell-line, var(--fish-edge)); border-radius: 7px;
-  box-shadow: inset 0 1px var(--df-shell-highlight, transparent), 0 2px 7px rgb(14 22 34 / .15);
-  color: var(--df-shell-ink, var(--fish-label)); background: var(--df-shell-raised, var(--fish-panel));
+  position: relative; display: flex; align-items: center; gap: 7px; width: min(65%, 235px); min-height: 39px; padding: 3px 12px;
+  border: 1px solid var(--df-shell-line, var(--fish-edge)); border-radius: 11px;
+  color: var(--df-shell-ink, var(--fish-label)); background: var(--df-sample-paper);
   font-size: 11px; line-height: 1.25;
 }
 .df-glass-face b { font-size: 10px; color: var(--df-shell-ink, var(--fish-label)); }
 .df-glass-caret { height: 1.2em; width: 1.5px; background: var(--df-accent); }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root:not(.df-off-glass) .df-glass-face {
-    background: var(--df-sample-film), color-mix(in srgb, var(--df-shell-raised, var(--fish-panel)) var(--df-sample-pigment), transparent);
-    -webkit-backdrop-filter: blur(var(--df-sample-blur)) saturate(var(--df-sample-saturation));
-    backdrop-filter: blur(var(--df-sample-blur)) saturate(var(--df-sample-saturation));
+    background: var(--df-sample-film), color-mix(in srgb, var(--df-sample-paper) var(--df-sample-pigment), transparent);
+    -webkit-backdrop-filter: blur(var(--df-sample-blur)) saturate(var(--df-glass-saturation, 1.26));
+    backdrop-filter: blur(var(--df-sample-blur)) saturate(var(--df-glass-saturation, 1.26));
+    box-shadow: var(--df-command-lift-shadow);
   }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
   .df-glass-solid-note { display: inline; }
   :root:not(.df-off-glass) .df-glass-face {
-    background: var(--df-shell-raised, var(--fish-panel)); -webkit-backdrop-filter: none; backdrop-filter: none;
+    background: var(--df-sample-paper); -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none;
   }
 }
 .df-glass-range { display: grid; grid-template-columns: minmax(62px, auto) minmax(32px, 1fr) 5ch; align-items: center; gap: 8px; min-height: 25px; }

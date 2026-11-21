@@ -4,6 +4,7 @@
 const overlay = '[data-composer-overlay]'
 const menu = ':is([data-trigger-menu], [aria-label]:has(> input[type="text"]))'
 const panel = `${overlay} ${menu}`
+const floatingMenus = `:is(${panel}, [role="menu"]:has(.df-ms-hero))`
 
 export const commandGlassCss = `
 body {
@@ -12,6 +13,12 @@ body {
   --df-command-muted: var(--df-shell-muted, #4a586d);
   --df-command-edge: var(--df-shell-line, #bdc9d9);
   --df-command-lift: rgb(18 32 61 / 17%);
+  --df-command-film: linear-gradient(148deg, color-mix(in srgb, var(--df-glass-keylight, white) 11%, transparent), transparent 34%),
+    linear-gradient(20deg, transparent 60%, color-mix(in srgb, var(--df-shell-scene, #9cbfff) 6%, transparent));
+  --df-command-lift-shadow: inset 0 1px var(--df-glass-keylight, rgb(255 255 255 / .6)),
+    inset 1px 0 var(--df-glass-rim-light, rgb(255 255 255 / .18)),
+    inset 0 -1px var(--df-glass-rim-shade, rgb(14 22 38 / .12)),
+    0 2px 5px -2px var(--df-command-lift), 0 13px 32px -10px var(--df-command-lift);
 }
 body[data-ds-dark-theme] {
   --df-command-paper: var(--df-shell-raised, #202a3b);
@@ -35,19 +42,20 @@ ${panel} {
   background: var(--df-command-paper);
   border: 1px solid var(--df-command-edge);
   border-radius: var(--dsw-radius-lg, 14px);
-  box-shadow: inset 0 1px rgb(255 255 255 / 10%), 0 8px 24px -7px var(--df-command-lift);
+  box-shadow: 0 8px 24px -7px var(--df-command-lift);
 }
 ${panel}:dir(rtl) { --df-command-indicator: -2px; }
 
 /* Menu material has its own controls. Its default keeps 98% pigment, even
    when the composer behind it has been set to clear glass. */
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  :root:not(.df-off-glass) ${panel} {
-    background:
-      linear-gradient(155deg, color-mix(in srgb, var(--df-command-accent) 4%, transparent), transparent 55%),
+  :root:not(.df-off-glass) ${floatingMenus} {
+    background: var(--df-command-film),
       color-mix(in srgb, var(--df-command-paper), transparent var(--df-menu-transparency, 2%));
-    -webkit-backdrop-filter: blur(var(--df-menu-blur, 20px)) saturate(110%);
-    backdrop-filter: blur(var(--df-menu-blur, 20px)) saturate(110%);
+    -webkit-backdrop-filter: blur(var(--df-menu-blur, 20px)) saturate(var(--df-glass-saturation, 1.26));
+    backdrop-filter: blur(var(--df-menu-blur, 20px)) saturate(var(--df-glass-saturation, 1.26));
+    border: 1px solid var(--df-command-edge);
+    box-shadow: var(--df-command-lift-shadow);
   }
 }
 ${panel} [role="presentation"] {
@@ -73,14 +81,17 @@ ${panel}[data-menu-phase="enter"] > * { animation: none; }
   }
 }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
-  :root:not(.df-off-glass) ${panel} {
+  :root:not(.df-off-glass) ${floatingMenus} {
     background: var(--df-command-paper);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
+    box-shadow: 0 4px 12px -4px var(--df-command-lift);
   }
 }
 @media (forced-colors: active) {
-  ${panel} { border-color: CanvasText; }
+  :root:not(.df-off-glass) ${floatingMenus}, ${panel} {
+    background: Canvas; color: CanvasText; border-color: CanvasText; box-shadow: none;
+  }
   ${panel} [role="option"][aria-selected="true"] {
     outline: 2px solid Highlight;
     outline-offset: -2px;

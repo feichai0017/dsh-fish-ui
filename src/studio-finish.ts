@@ -13,6 +13,34 @@ export const studioFinishCss = `
   background: var(--df-shell-raised, var(--fish-panel));
   border-color: var(--fish-edge);
 }
+/* One floating sheet. Its title bar and grouped rows use thin fills, leaving
+   the backdrop blur to the sheet's outer surface. Keep extra pigment under text. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root:not(.df-off-glass) .df-sheet-scrim {
+    background: color-mix(in srgb, var(--df-shell-depth, #172036) 22%, transparent);
+  }
+  :root:not(.df-off-glass) .df-sheet-panel {
+    background: var(--df-shell-film, none),
+      color-mix(in srgb, var(--fish-panel), transparent calc(var(--df-glass-transparency, 22%) * .68));
+    border-color: var(--fish-edge);
+    box-shadow: var(--df-command-lift-shadow);
+    -webkit-backdrop-filter: var(--df-shell-filter);
+    backdrop-filter: var(--df-shell-filter);
+  }
+  :root:not(.df-off-glass) .df-sheet-head {
+    background: color-mix(in srgb, var(--df-shell-raised, var(--fish-panel)) 38%, transparent);
+  }
+  :root:not(.df-off-glass) .df-sheet-close {
+    background: color-mix(in srgb, var(--fish-label) 5%, transparent);
+  }
+  :root:not(.df-off-glass) .df-sheet-close:hover {
+    background: color-mix(in srgb, var(--fish-label) 12%, transparent);
+  }
+  :root:not(.df-off-glass) .df-sheet-panel :is(.fish-tabs, .fish-controls, .df-glass-controls) {
+    background: color-mix(in srgb, var(--df-shell-raised, var(--fish-panel)) 66%, transparent);
+  }
+}
+html:is([data-fish-pace="still"], .df-off-fishmotion) .df-sheet-panel { animation: none; }
 .fish-studio .fish-cover {
   height: clamp(136px, 30cqi, 190px);
   border-radius: 14px;
@@ -79,7 +107,18 @@ export const studioFinishCss = `
   .fish-card-art { aspect-ratio: 2.12; }
   .fish-tabs { margin-block: 9px; }
 }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more), (forced-colors: active) {
+  :root:not(.df-off-glass) .df-sheet-panel {
+    background: var(--fish-panel); -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: 0 4px 12px -4px var(--df-command-lift);
+  }
+  :root:not(.df-off-glass) .df-sheet-head,
+  :root:not(.df-off-glass) .df-sheet-panel :is(.fish-tabs, .fish-controls, .df-glass-controls) {
+    background: var(--df-shell-raised, var(--fish-panel));
+  }
+}
 @media (forced-colors: active) {
+  :root:not(.df-off-glass) .df-sheet-panel { background: Canvas; border-color: CanvasText; box-shadow: none; }
   .fish-card-label { color: CanvasText; background: Canvas; text-shadow: none; }
   .fish-scene-card .fish-card-label svg, .fish-scene-card:has(input:checked) .fish-card-label svg { color: CanvasText; }
   .fish-scene-card:has(input:checked), .fish-tabs button[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: -2px; }

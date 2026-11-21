@@ -14,11 +14,11 @@ Under **Scenes**, use **Launch animation** to control automatic playback and **P
 
 ## Window and menus
 
-The sidebar, top bar, tools pane and composer pick up a tint from the current painting. The accent you choose marks focus and selection. The `/` command and `@` reference menus use a denser surface to keep the conversation behind them out of the way. Arrow keys move the accent marker to the current option.
+The sidebar, top bar, tools pane and composer take their tint from the current painting. Frosted surfaces have a fine lit edge and a shaded lower lip in both light and dark mode. With pointer effects on, light follows the pointer along the composer's edge. Menus use a denser material to keep labels legible over conversation text. The selected accent marks focus and keyboard selection.
 
 Under **Interface details → Fish finish**, turn on **Frosted glass** and choose **Interface** or **Command menu**. Drag **Transparency** (0–70%) or **Blur** (0–40 px) to see the result on the sample and the live interface. Release to save to the current profile. Arrow keys also adjust the sliders.
 
-The interface starts at 6% transparency and 18 px blur. The command menu has its own settings and starts at 2% transparency and 20 px blur. The menus use a solid surface when the system requests reduced transparency or higher contrast. With motion enabled, a newly selected painting gently settles into view.
+New configurations start at 22% transparency and 24 px blur for the interface. The command and model menus use the separate menu settings, initially 2% transparency and 20 px blur. Saved slider values carry over on upgrade. Reduced transparency or increased contrast switches the material to a solid surface.
 
 ## Model and reasoning picker
 

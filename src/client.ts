@@ -1018,7 +1018,11 @@ const CSS = `
   position: absolute; inset-block-start: 12px; inset-inline-end: 14px; z-index: 1;
   display: inline-flex; align-items: center; gap: 7px; max-width: calc(100% - 28px);
   min-height: 30px; padding: 3px 10px; border: 1px solid var(--df-shell-line);
-  border-radius: 999px; background: var(--df-shell-raised, var(--dsw-alias-bg-layer-1));
+  border-radius: 999px;
+  background: var(--df-shell-film, none), var(--df-shell-card-fill, var(--dsw-alias-bg-layer-1));
+  -webkit-backdrop-filter: var(--df-shell-filter, none);
+  backdrop-filter: var(--df-shell-filter, none);
+  box-shadow: inset 0 1px var(--df-glass-rim-light, transparent), 0 2px 6px -2px var(--df-shell-shadow, transparent);
   color: var(--df-shell-ink, var(--dsw-alias-label-primary)); font: inherit; font-size: 12px; cursor: pointer;
 }
 .df-welcome-scene svg, .df-welcome-chevron { color: var(--df-accent, #4d6bfe); }
@@ -2516,7 +2520,7 @@ body {
     Object.assign(DF_COPY.zh.items, {
       catppuccin: ['Catppuccin 配色', 'Latte / Mocha 全套背景、文字、边框与强调色'],
       aurora: ['会话背景', '在欢迎页和聊天记录后面显示所选场景'],
-      cursor: ['指针物理', '跟随指针的柔光、输入框微倾斜'],
+      cursor: ['指针物理', '移动指针时，输入框微微倾斜，玻璃边缘随光线明暗变化'],
       textMotion: ['思考与文字动效', '回复浮入、思考块微光、流式文字呼吸感'],
       hostIcons: ['导航与操作图标', '新会话、搜索、文件夹、复制和发送等按钮使用所选图标风格'],
       launchIntro: ['开场动画', '启动到欢迎页时播放，可点按或键入跳过'],
@@ -2524,7 +2528,7 @@ body {
     Object.assign(DF_COPY.en.items, {
       catppuccin: ['Catppuccin palette', 'Latte / Mocha backgrounds, text, borders and accents'],
       aurora: ['Conversation backdrop', 'Show the selected scene on the welcome page and behind messages'],
-      cursor: ['Pointer physics', 'A cursor-following glow and a subtle composer tilt'],
+      cursor: ['Pointer physics', 'Tilt the composer gently and move the light along its glass edge'],
       textMotion: ['Thinking & text motion', 'Replies rise in, reasoning shimmers, streaming text breathes'],
       hostIcons: ['Navigation & action icons', 'Use the chosen icon style for new chats, search, folders, copy, send and related controls'],
       launchIntro: ['Launch animation', 'Play on the welcome page at startup. Click or type to skip.'],
@@ -2898,6 +2902,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       const media = window.matchMedia('(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)')
       let glow: HTMLDivElement | null = null
       let card: HTMLElement | null = null
+      let cardDirty = false
       let frame = 0
       let x = 0, y = 0, targetX = 0, targetY = 0
       const clearCard = () => {
@@ -2905,9 +2910,23 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         card.classList.remove('fish-tilting')
         card.style.removeProperty('--fish-tilt-x')
         card.style.removeProperty('--fish-tilt-y')
+        card.style.removeProperty('--df-glass-light-x')
+        cardDirty = false
         card = null
       }
       const paint = () => {
+        if (card && cardDirty) {
+          cardDirty = false
+          const rect = card.getBoundingClientRect()
+          if (rect.width && rect.height) {
+            const u = Math.max(0, Math.min(1, (targetX - rect.left) / rect.width))
+            const v = Math.max(0, Math.min(1, (targetY - rect.top) / rect.height))
+            card.style.setProperty('--fish-tilt-x', ((.5 - v) * 1.6).toFixed(2) + 'deg')
+            card.style.setProperty('--fish-tilt-y', ((u - .5) * 1.6).toFixed(2) + 'deg')
+            card.style.setProperty('--df-glass-light-x', Math.round(u * 100) + '%')
+            card.classList.add('fish-tilting')
+          }
+        }
         x += (targetX - x) * .22
         y += (targetY - y) * .22
         glow.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)'
@@ -2923,14 +2942,11 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           glow.setAttribute('data-active', '')
         }
         if (!frame) frame = requestAnimationFrame(paint)
-        const next = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-composer-card]') : null
+        const target = event.target instanceof Element ? event.target : null
+        const next = target?.closest('[data-composer-overlay], [role="menu"]')
+          ? null : target?.closest<HTMLElement>('[data-composer-card]') ?? null
         if (next !== card) { clearCard(); card = next }
-        if (!card) return
-        const rect = card.getBoundingClientRect()
-        if (!rect.width || !rect.height) return
-        card.style.setProperty('--fish-tilt-x', ((.5 - (targetY - rect.top) / rect.height) * 1.6).toFixed(2) + 'deg')
-        card.style.setProperty('--fish-tilt-y', (((targetX - rect.left) / rect.width - .5) * 1.6).toFixed(2) + 'deg')
-        card.classList.add('fish-tilting')
+        cardDirty = card !== null
       }
       const leave = () => {
         cancelAnimationFrame(frame)
@@ -2947,7 +2963,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         glow = null
       }
       const sync = () => {
-        const enabled = dfSettings.cursor && media.matches && !document.hidden
+        const enabled = dfSettings.cursor && dfSettings.sceneMotion !== 'still' && media.matches && !document.hidden
         if (enabled === Boolean(glow)) return
         if (!enabled) { stop(); return }
         glow = document.createElement('div')

@@ -2,8 +2,8 @@ const transparency = { min: 0, max: 70, step: 1, unit: '%' } as const
 const blur = { min: 0, max: 40, step: 1, unit: 'px' } as const
 
 export const GLASS_RANGES = {
-  glassTransparency: { ...transparency, default: 6, css: '--df-glass-transparency' },
-  glassBlur: { ...blur, default: 18, css: '--df-glass-blur' },
+  glassTransparency: { ...transparency, default: 22, css: '--df-glass-transparency' },
+  glassBlur: { ...blur, default: 24, css: '--df-glass-blur' },
   menuTransparency: { ...transparency, default: 2, css: '--df-menu-transparency' },
   menuBlur: { ...blur, default: 20, css: '--df-menu-blur' },
 } as const
