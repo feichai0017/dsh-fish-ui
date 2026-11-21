@@ -1,8 +1,14 @@
-// These surfaces sit outside the conversation artwork. Tint their paint with the same
-// scene swatches without changing window drag, DockKit stacking, or editor geometry.
+// Match the frame's painted columns and residents. Keep filters off their
+// containers so window-caption controls and floating DockKit panes stay anchored.
 const sidebar = 'div:has(> [data-slot="sidebar"])'
 const header = 'header[data-window-drag]:has(> [data-conversation-header-leading])'
 const dockCell = '[data-sidebar-right-panel] :is([data-dockkit-pane], [data-dockkit-empty], [data-dockkit-float])'
+const sceneWindow = ':root[data-fish-pace][data-df-window-scene]'
+const sceneGlass = `${sceneWindow}:not(.df-off-glass)`
+const footer = '[data-shell-bottom]'
+const heroRow = '[data-content-phase="hero"] [class*="heroWorkspaceRow"]'
+const preset = '[data-slot="conversation.hero.agentPreset"]'
+const heroChip = `:is(${heroRow} > button, ${heroRow} > ${preset} > * > button)[aria-haspopup="menu"]`
 
 export const shellGlassCss = `
 :root[data-fish-pace] body {
@@ -96,6 +102,35 @@ export const shellGlassCss = `
    fixed floating windows, so putting a backdrop filter on it would break docking. */
 :root[data-fish-pace] [data-rightbar-col] {
   background: var(--df-shell-surface);
+}
+/* AppFrame gives the macOS/Windows centre column its own opaque backing.
+   The selected painting lives behind all three columns. */
+${sceneWindow} div:has(> [data-rightbar-col]) > div:has(+ [data-rightbar-col]) {
+  background: transparent;
+}
+${sceneWindow} ${footer} {
+  min-height: 8px;
+  box-sizing: border-box;
+  background: var(--df-shell-surface);
+}
+/* These two native triggers sit over the illustration and animated portrait.
+   Their inset rim doesn't change the hit target or the measured popover anchor. */
+${sceneWindow} ${heroChip} {
+  --dsw-alias-label-primary: var(--df-shell-ink);
+  --dsw-alias-label-caption: var(--df-shell-muted);
+  color: var(--df-shell-ink);
+  background: var(--df-shell-card-fill);
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px var(--df-shell-line), inset 0 1px 1px var(--df-shell-highlight);
+  -webkit-backdrop-filter: var(--df-shell-filter, none);
+  backdrop-filter: var(--df-shell-filter, none);
+}
+${sceneWindow} ${heroChip}:is(:hover:not(:disabled), [aria-expanded="true"]) {
+  background: var(--df-shell-raised);
+}
+${sceneWindow} ${heroChip}:focus-visible {
+  outline: 2px solid var(--df-shell-accent);
+  outline-offset: 2px;
 }
 :root[data-fish-pace] ${dockCell},
 :root[data-fish-pace] ${header} {
@@ -208,6 +243,72 @@ export const shellGlassCss = `
   :root[data-fish-pace]:not(.df-off-glass) [data-sidebar-right-panel] :is([data-files-page], [data-files-state], [data-sidebar-right-guide]) {
     --dsw-alias-bg-base: var(--df-shell-files-base);
   }
+
+  /* Keep one layer of glass between the user and the painting. Pigment and
+     blur live on the same pseudo-element; an opaque track behind the pane
+     or a painted column behind the blur would conceal the scene. */
+  ${sceneGlass} body {
+    --df-window-backing: transparent;
+    --df-window-seat-shade: color-mix(in srgb, var(--df-shell-chrome-fill) 36%, transparent);
+    --df-window-control-fill: color-mix(in srgb, var(--df-shell-raised) 62%, transparent);
+  }
+  ${sceneGlass} :is(${sidebar}, ${header}, ${dockCell}, [data-rightbar-col], ${footer}) {
+    background: var(--df-window-backing);
+  }
+  ${sceneGlass} ${sidebar} {
+    --dsw-specific-sidebar-fill: var(--df-window-backing);
+  }
+  ${sceneGlass} :is(${sidebar}, ${header}, ${dockCell}, ${footer})::before {
+    background: var(--df-shell-film), var(--df-shell-chrome-fill);
+  }
+  ${sceneGlass} ${footer} {
+    position: relative;
+    isolation: isolate;
+  }
+  ${sceneGlass} ${footer}::before {
+    content: var(--df-shell-backdrop-content);
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 1px var(--df-shell-highlight);
+    -webkit-backdrop-filter: var(--df-shell-filter);
+    backdrop-filter: var(--df-shell-filter);
+  }
+  ${sceneGlass}[data-windows-titlebar] div:has(> [data-rightbar-col])::before {
+    background: var(--df-shell-film), var(--df-shell-chrome-fill);
+    -webkit-backdrop-filter: var(--df-shell-filter);
+    backdrop-filter: var(--df-shell-filter);
+  }
+  ${sceneGlass} [data-sidebar-right-guide] {
+    --dsw-alias-bg-layer-1: var(--df-window-control-fill);
+    --dsw-specific-guide-hero: var(--df-shell-muted);
+  }
+  /* The active sticky seat normally fades to the solid page colour, even in
+     a chat with no history. Keep its scroll geometry and soften that fade.
+     Put the statistics' own reading surface below the card, not behind it. */
+  ${sceneGlass} [data-content-phase="active"] [data-composer-seat] {
+    background: linear-gradient(180deg, transparent, var(--df-window-seat-shade) 36px);
+  }
+  ${sceneGlass} [data-content-phase="active"] [data-composer-dock]:has(button) {
+    position: relative;
+    isolation: isolate;
+    box-sizing: border-box;
+    border-radius: 0 0 8px 8px;
+    padding-inline: 8px;
+    background: var(--df-window-backing);
+  }
+  ${sceneGlass} [data-content-phase="active"] [data-composer-dock]:has(button)::before {
+    content: var(--df-shell-backdrop-content);
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--df-shell-chrome-fill);
+    -webkit-backdrop-filter: var(--df-shell-filter);
+    backdrop-filter: var(--df-shell-filter);
+  }
 }
 @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
   :root[data-fish-pace]:not(.df-off-glass,.df-off-cursor,.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused])
@@ -260,6 +361,11 @@ export const shellGlassCss = `
   :root[data-fish-pace] div:has(> [data-slot="sidebar"]),
   :root[data-fish-pace][data-platform="darwin"] div:has(> [data-slot="sidebar"]) {
     background: var(--df-shell-surface);
+  }
+  ${sceneGlass} body {
+    --df-window-backing: var(--df-shell-surface);
+    --df-window-seat-shade: var(--df-shell-surface);
+    --df-window-control-fill: var(--df-shell-raised);
   }
 }
 @media (forced-colors: active) {

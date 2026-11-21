@@ -1,9 +1,10 @@
 import { playFishLaunch, DF_LAUNCH_CSS } from './launch'
 import { studioFinishCss } from './studio-finish'
 import fishLogo from '../icon.svg'
-import { dfCreateScenePlate, dfPlaySceneArrival, paintings, DF_SCENE_ART_CSS } from './scene-art'
+import { dfCreateScenePlate, dfPlaySceneArrival, paintings, setWindowPainting, DF_SCENE_ART_CSS } from './scene-art'
 import { installModelStudio } from './model-studio'
 import { shellGlassCss } from './shell-glass'
+import { installDesktopWorkspacePicker } from './workspace-picker'
 import { commandGlassCss } from './command-glass'
 import { createGlassControls, glassControlsCss } from './glass-controls'
 import { GLASS_KEYS, GLASS_RANGES, validGlassValue, type GlassKey, type GlassValues } from './glass-settings'
@@ -2115,6 +2116,7 @@ body {
     let dfTheme: FishThemeService | null = null
     const dfThemeLayers = new Map<string, () => void>()
     let dfMounted = false
+    let windowPainting: HTMLImageElement
     const glassDrafts = new Map<GlassKey, { owner: symbol; value: number }>()
 
     function paintGlassValue(key: GlassKey) {
@@ -2263,6 +2265,7 @@ body {
       }
       document.documentElement.dataset.fishPace = dfSettings.sceneMotion
       document.documentElement.dataset.fishIcons = dfSettings.iconStyle
+      setWindowPainting(windowPainting, dfSettings.aurora ? dfSettings.scene : undefined)
       dfSyncTheme()
     }
     function dfPublish(patch: Partial<typeof dfSnapshot>) {
@@ -2519,7 +2522,7 @@ body {
     })
     Object.assign(DF_COPY.zh.items, {
       catppuccin: ['Catppuccin 配色', 'Latte / Mocha 全套背景、文字、边框与强调色'],
-      aurora: ['会话背景', '在欢迎页和聊天记录后面显示所选场景'],
+      aurora: ['窗口背景', '将所选场景铺满窗口，延伸到侧栏、顶栏和底栏下方'],
       cursor: ['指针物理', '移动指针时，输入框微微倾斜，玻璃边缘随光线明暗变化'],
       textMotion: ['思考与文字动效', '回复浮入、思考块微光、流式文字呼吸感'],
       hostIcons: ['导航与操作图标', '新会话、搜索、文件夹、复制和发送等按钮使用所选图标风格'],
@@ -2527,7 +2530,7 @@ body {
     })
     Object.assign(DF_COPY.en.items, {
       catppuccin: ['Catppuccin palette', 'Latte / Mocha backgrounds, text, borders and accents'],
-      aurora: ['Conversation backdrop', 'Show the selected scene on the welcome page and behind messages'],
+      aurora: ['Window backdrop', 'Extend the selected painting across the window and under the side, top and bottom bars'],
       cursor: ['Pointer physics', 'Tilt the composer gently and move the light along its glass edge'],
       textMotion: ['Thinking & text motion', 'Replies rise in, reasoning shimmers, streaming text breathes'],
       hostIcons: ['Navigation & action icons', 'Use the chosen icon style for new chats, search, folders, copy, send and related controls'],
@@ -2730,16 +2733,10 @@ body {
   overflow: hidden;
   pointer-events: none;
   user-select: none;
-  opacity: .18;
-  mask-image: linear-gradient(90deg, #000, rgb(0 0 0 / .38) 28% 72%, #000);
 }
 .fish-backdrop[data-home="true"] {
   z-index: -2;
-  opacity: .43;
-  mask-image: radial-gradient(ellipse at 45% 46%, rgb(0 0 0 / .27) 12%, rgb(0 0 0 / .6) 58%, #000 96%);
 }
-body[data-ds-dark-theme] .fish-backdrop { opacity: .34; }
-body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { opacity: .82; }
 [data-conversation-content]:has(.fish-backdrop[data-home="false"]) [data-conversation-scroll] {
   position: relative;
 }
@@ -3386,12 +3383,18 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       apply(ctx) {
         ctx.effect(() => {
           dfMounted = true
+          windowPainting = document.createElement('img')
+          windowPainting.className = 'df-window-painting'
+          windowPainting.alt = ''
+          windowPainting.draggable = false
+          windowPainting.setAttribute('aria-hidden', 'true')
           const visible = () => document.documentElement.toggleAttribute('data-fish-paused', document.hidden)
           document.addEventListener('visibilitychange', visible)
           visible()
           dfApplySettings()
           return () => {
             dfMounted = false
+            setWindowPainting(windowPainting, undefined)
             glassDrafts.clear()
             GLASS_KEYS.forEach(key => document.documentElement.style.removeProperty(GLASS_RANGES[key].css))
             dfWrite = null
@@ -3443,6 +3446,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
             }
           }, 'dsh-fish-ui: token layers')
         })
+        installDesktopWorkspacePicker(ctx, React)
         installModelStudio(ctx, React)
         dfInstallReplyMotion(React, ctx, dfPlaySceneArrival)
         ctx.inject(['workspaces', 'sessions'], scope => {

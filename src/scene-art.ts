@@ -10,8 +10,7 @@ type Scene = keyof typeof paintings
 type PlateProps = { scene: Scene; className?: string; align?: string; live?: boolean }
 type ReactRuntime = typeof import('react')
 
-// Artwork and effects share a 2:1 coordinate system so the waterline, moon limb
-// and sand crest still line up when the host crops a tall conversation panel.
+// The six paintings and their effects use the same 600 × 300 artboard.
 const canyon = 'M-12 309 C39 300 86 276 134 270 S187 269 214 253 S236 210 269 209 S316 206 335 192 S338 169 361 163 S383 147 387 132 S404 119 420 117 S453 110 462 92 S461 73 481 66'
 const auroralFold = 'M565 -19 C555 28 534 80 476 96 S399 87 355 111 S319 134 344 151 S404 173 358 195 C312 215 266 208 242 227'
 const duneCrest = 'M-13 280 C81 264 164 244 225 213 S327 165 383 139 C428 119 466 106 489 85 Q503 69 479 53'
@@ -88,8 +87,43 @@ const glint: Record<Scene, string> = {
   atlas: '#b3edff', aurora: '#9bffcf', orbit: '#ffd4ae', dunes: '#ffe0a0', rain: '#9cdbff', lotus: '#f5ffe7',
 }
 
-// Portrait panes should keep the subject in frame (especially the narrow crescent).
+// Anchor the crop to the subject as the window gets narrower.
 const focusX: Record<Scene, number> = { atlas: 355, aurora: 355, orbit: 454, dunes: 421, rain: 410, lotus: 398 }
+
+export function setWindowPainting(image: HTMLImageElement, scene?: Scene) {
+  const root = document.documentElement
+  if (!scene) {
+    image.remove()
+    root.removeAttribute('data-df-window-scene')
+    return
+  }
+  if (image.dataset.dfPainting !== scene) {
+    image.getAnimations?.().forEach(animation => animation.cancel())
+    image.src = paintings[scene]
+    image.style.objectPosition = focusX[scene] / 6 + '% 50%'
+    image.dataset.dfPainting = scene
+    if (image.isConnected && !document.hidden && root.dataset.fishPace !== 'still'
+        && !root.classList.contains('df-off-fishmotion') && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      image.animate?.([{ opacity: .68 }, { opacity: 1 }], { duration: 380, easing: 'ease-out' })
+    }
+  }
+  if (!image.isConnected) document.body.prepend(image)
+  root.dataset.dfWindowScene = scene
+}
+
+// Project the pane's slice of the window onto the artboard. This lets arrivals
+// remain local to their conversation even when sidebars or split panes resize.
+function alignPaneEffects(node: SVGSVGElement, scene: Scene) {
+  const pane = node.getBoundingClientRect()
+  const windowWidth = document.documentElement.clientWidth
+  const windowHeight = document.documentElement.clientHeight
+  const scale = Math.max(windowWidth / 600, windowHeight / 300)
+  if (!scale || !pane.width || !pane.height) return
+  const imageX = (windowWidth - 600 * scale) * focusX[scene] / 600
+  const imageY = (windowHeight - 300 * scale) / 2
+  const view = [(pane.left - imageX) / scale, (pane.top - imageY) / scale, pane.width / scale, pane.height / scale].join(' ')
+  if (node.getAttribute('viewBox') !== view) node.setAttribute('viewBox', view)
+}
 
 export function dfCreateScenePlate(React: ReactRuntime) {
   return React.memo(function FishPlate({ scene, className, align = 'xMidYMid slice', live = false }: PlateProps) {
@@ -99,25 +133,18 @@ export function dfCreateScenePlate(React: ReactRuntime) {
     React.useLayoutEffect(() => {
       const node = ref.current
       if (!live || !node || typeof ResizeObserver === 'undefined') return
-      const crop = (width: number, height: number) => {
-        if (width <= 0 || height <= 0) return
-        const span = Math.min(600, 300 * width / height)
-        const left = Math.min(600 - span, Math.max(0, focusX[scene] - span / 2))
-        node.setAttribute('viewBox', left + ' 0 ' + span + ' 300')
-      }
-      const rect = node.getBoundingClientRect()
-      crop(rect.width, rect.height)
-      const observer = new ResizeObserver(entries => {
-        const box = entries[0]?.contentRect
-        if (box) crop(box.width, box.height)
-      })
+      const crop = () => alignPaneEffects(node, scene)
+      crop()
+      const observer = new ResizeObserver(crop)
       observer.observe(node)
+      observer.observe(document.documentElement)
       return () => observer.disconnect()
     }, [scene, live])
     const artwork = h('g', { className: 'df-scene-print' },
       h('image', { key: scene, href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }))
-    return h('svg', { className, ref, 'data-df-painting': scene, viewBox: '0 0 600 300', preserveAspectRatio: align, 'aria-hidden': true, focusable: false },
-      artwork,
+    return h('svg', { className, ref, 'data-df-painting': live ? undefined : scene, 'data-df-pane-effects': live ? scene : undefined,
+      viewBox: '0 0 600 300', preserveAspectRatio: live ? 'none' : align, 'aria-hidden': true, focusable: false },
+      !live && artwork,
       live && h('svg', { width: 600, height: 300, viewBox: '0 0 600 300' },
         h('defs', null, h('radialGradient', { id }, h('stop', { offset: 0, stopColor: glint[scene], stopOpacity: .8 }),
           h('stop', { offset: .35, stopColor: glint[scene], stopOpacity: .35 }), h('stop', { offset: 1, stopColor: glint[scene], stopOpacity: 0 }))),
@@ -134,6 +161,8 @@ export function dfPlaySceneArrival(backdrop: HTMLElement) {
       || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !layer.animate) return
   arrivals.get(backdrop)?.forEach(animation => animation.cancel())
   const scene = layer.dataset.dfArrival
+  const projection = backdrop.querySelector<SVGSVGElement>('svg[data-df-pane-effects]')
+  if (projection && Object.hasOwn(paintings, scene)) alignPaneEffects(projection, scene as Scene)
   const duration = scene === 'orbit' ? 1470 : scene === 'rain' ? 1000 : 1310
   const animations: Animation[] = []
   const animate = (node: Element, frames: Keyframe[], easing = 'ease-in-out') => {
@@ -161,23 +190,55 @@ export function dfPlaySceneArrival(backdrop: HTMLElement) {
 }
 
 export const DF_SCENE_ART_CSS = `
-.fish-backdrop, .fish-backdrop[data-home="true"],
-body[data-ds-dark-theme] .fish-backdrop, body[data-ds-dark-theme] .fish-backdrop[data-home="true"] {
-  opacity: 1;
+/* A single painting below the window frame gives every material the same
+   backdrop to sample. A narrower conversation crops a different part of it. */
+html[data-df-window-scene] body {
+  isolation: isolate;
+  --df-reading-paper: var(--dsw-alias-bg-base, #f4f6fa);
+  --df-reading-center: 91%;
+  --df-reading-edge: 56%;
+  --df-welcome-wash: 53%;
+}
+html[data-df-window-scene] body[data-ds-dark-theme] {
+  --df-reading-paper: var(--dsw-alias-bg-base, #191d28);
+  --df-reading-center: 84%;
+  --df-reading-edge: 40%;
+  --df-welcome-wash: 28%;
+}
+.df-window-painting {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+html[data-df-window-scene] :is(div:has(> [data-rightbar-col]), div:has(> div > [data-slot="sidebar"]),
+  [data-phase]:has(> [data-conversation-content])) {
+  background: transparent;
+}
+html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame) {
+  isolation: isolate;
+  background: radial-gradient(ellipse at 50% 42%,
+    color-mix(in srgb, var(--df-reading-paper) var(--df-reading-center), transparent) 15%,
+    color-mix(in srgb, var(--df-reading-paper) var(--df-reading-edge), transparent) 97%);
+}
+html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame[data-df-welcome="true"]) {
+  background: radial-gradient(ellipse at 50% 46%,
+    color-mix(in srgb, var(--df-reading-paper) var(--df-welcome-wash), transparent), transparent 90%);
 }
 .fish-backdrop {
   --df-weather-time: 29s;
   --df-rain-time: 3.6s;
-  --df-print-opacity: .24;
-  mask-image: linear-gradient(90deg, #000 0%, rgb(0 0 0 / .4) 23%, rgb(0 0 0 / .28) 53%, rgb(0 0 0 / .55) 80%, #000 100%);
 }
-.fish-backdrop[data-home="true"] {
-  --df-print-opacity: .7;
-  mask-image: radial-gradient(ellipse at 43% 44%, rgb(0 0 0 / .38) 9%, rgb(0 0 0 / .7) 55%, #000 91%);
+@media (forced-colors: active), (prefers-contrast: more) {
+  .df-window-painting, .fish-backdrop { display: none; }
+  html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame) { background: var(--df-reading-paper); }
 }
-body[data-ds-dark-theme] .fish-backdrop { --df-print-opacity: .46; }
-body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { --df-print-opacity: .92; }
-.fish-backdrop .df-scene-print { opacity: var(--df-print-opacity); }
 .df-scene-arrival, .df-scene-weather { pointer-events: none; }
 .df-scene-arrival { opacity: 0; transform-box: view-box; }
 .df-scene-arrival[data-df-arrival="lotus"] { transform-origin: 55.17% 67%; }
@@ -186,7 +247,7 @@ body[data-ds-dark-theme] .fish-backdrop[data-home="true"] { --df-print-opacity: 
 .df-scene-weather { opacity: 0; }
 html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-time: 1.5s; }
 @media (prefers-reduced-motion: no-preference) {
-  html:not(.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]) :is(.fish-cover,.fish-backdrop) .df-scene-print > image {
+  html:not(.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]) .fish-cover .df-scene-print > image {
     transform-box: fill-box;
     transform-origin: center;
     animation: df-scene-develop 380ms cubic-bezier(.22,.72,.2,1);

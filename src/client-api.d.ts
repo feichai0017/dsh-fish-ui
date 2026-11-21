@@ -14,6 +14,9 @@ interface FishClientContext {
   effect(setup: () => void | (() => void), label: string): void
   inject(names: string[], setup: (scope: FishClientContext) => void): void
   theme: FishThemeService
+  remoteAccess: {
+    whenAccess(action: string, setup: () => Iterable<() => void>): () => void
+  }
   workspaces: { list: { getSnapshot(): { phase: string; items: readonly unknown[] } } }
   configForms: {
     get(id: string): {
@@ -23,8 +26,8 @@ interface FishClientContext {
     }
   }
   slots: {
-    inject(name: string, register: () => void): void
-    register(record: { name: string; id?: string; key?: string; order?: number; label?: () => string }, component: React.ComponentType): void
+    inject(name: string, register: () => void | (() => void)): () => void
+    register<P>(record: { name: string; id?: string; key?: string; order?: number; priority?: number; label?: () => string }, component: React.ComponentType<P>): () => void
   }
 }
 interface FishClientRequire {
@@ -32,6 +35,7 @@ interface FishClientRequire {
   (name: 'react-dom'): typeof import('react-dom')
 }
 interface Window {
+  __DSH_DIRECTORY_PICKER__?: { pick(): Promise<string | null> }
   __ModuleLoader__: {
     load(definition: { id: string; factory(require: FishClientRequire): { inject: string[]; apply(ctx: FishClientContext): void } }): void
   }

@@ -12,9 +12,13 @@ When Harness starts on a blank conversation, a 1.66-second opening shows the sel
 
 Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it. Still mode, reduced motion and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
 
+On the desktop welcome page, open the workspace name above the composer. Choose **Add workspace…** to open the system folder chooser, or select an already listed workspace. Harness adds the folder and selects it. Deep Fish UI supplies the desktop chooser when the host's workspace menu is missing its folder action.
+
 ## Window and menus
 
-The sidebar, top bar, tools pane and composer take their tint from the current painting. Frosted surfaces have a fine lit edge and a shaded lower lip in both light and dark mode. With pointer effects on, light follows the pointer along the composer's edge. Menus use a denser material to keep labels legible over conversation text. The selected accent marks focus and keyboard selection.
+The selected painting fills the window behind the conversation, sidebar, tools pane, title bar and bottom bar. Opening a pane reveals another part of the same picture. The bars blur the painting behind them and a separate wash keeps the transcript legible. To return to a plain window, turn off **Window backdrop** under **Scenes**.
+
+Frosted surfaces have a fine lit edge and a shaded lower lip in both light and dark mode. With pointer effects on, light follows the pointer along the composer's edge. Menus use a denser material to keep labels legible over conversation text. The selected accent marks focus and keyboard selection.
 
 Under **Interface details → Fish finish**, turn on **Frosted glass** and choose **Interface** or **Command menu**. Drag **Transparency** (0–70%) or **Blur** (0–40 px) to see the result on the sample and the live interface. Release to save to the current profile. Arrow keys also adjust the sliders.
 
