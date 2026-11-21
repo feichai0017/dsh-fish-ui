@@ -3523,26 +3523,36 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         })
         installModelStudio(ctx, React)
         dfInstallReplyMotion(React, ctx, dfPlaySceneArrival)
-        // Fresh conversation on every launch. The service may not be reachable the first
-        // moment the shell is up, so retry for a few seconds and leave a manual trigger.
+        // The optional launch shortcut yields as soon as the user starts working in a session.
         ctx.inject(['uiWorkspace'], scope => {
-          const open = tries => {
-            try {
-              if (typeof scope.uiWorkspace.startSession === 'function') {
-                scope.uiWorkspace.startSession()
-                console.info('[dsh-fish-ui] opened a new session on launch')
-                return
-              }
-            } catch (error) {
-              console.warn('[dsh-fish-ui] new session failed', error)
-              return
-            }
-            if (tries < 30) window.setTimeout(() => open(tries + 1), 400)
-          }
-          window.__dfNewSession = () => open(0)
           scope.effect(() => {
-            const timer = window.setTimeout(() => open(0), 2500)
-            return () => window.clearTimeout(timer)
+            let timer: number
+            const cancel = () => {
+              window.clearTimeout(timer)
+              document.removeEventListener('pointerdown', cancel, true)
+              document.removeEventListener('keydown', cancel, true)
+              document.removeEventListener('input', cancel, true)
+            }
+            const open = () => {
+              cancel()
+              try { scope.uiWorkspace.startSession() }
+              catch (error) { console.warn('[dsh-fish-ui] new session failed', error) }
+            }
+            const onLaunch = (remaining: number) => {
+              if (document.querySelector('[data-chat-running]')) return cancel()
+              if (typeof scope.uiWorkspace.startSession === 'function') return open()
+              if (remaining > 0) timer = window.setTimeout(() => onLaunch(remaining - 1), 400)
+              else cancel()
+            }
+            document.addEventListener('pointerdown', cancel, true)
+            document.addEventListener('keydown', cancel, true)
+            document.addEventListener('input', cancel, true)
+            window.__dfNewSession = open
+            timer = window.setTimeout(() => onLaunch(30), 2500)
+            return () => {
+              cancel()
+              if (window.__dfNewSession === open) delete window.__dfNewSession
+            }
           }, 'dsh-fish-ui: new session on launch')
         })
         ctx.inject(['configForms'], dfConnectSettings)
