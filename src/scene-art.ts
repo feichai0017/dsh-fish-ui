@@ -219,7 +219,7 @@ export const DF_SCENE_ART_CSS = `
    backdrop to sample. A narrower conversation crops a different part of it. */
 html[data-df-window-scene] body {
   isolation: isolate;
-  --df-reading-paper: #f7f9f9;
+  --df-reading-paper: #eff3f3;
   --df-reading-strength: 97%;
   --df-reading-edge: 80%;
   --df-paint-grade: saturate(.69);

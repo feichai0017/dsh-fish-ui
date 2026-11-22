@@ -5,7 +5,10 @@ const glass = `${root}:not(.df-off-glass)`
 const moving = `${root}:not(.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused])`
 const selection = '[data-slot="sidebar"] :is([role="treeitem"][aria-selected="true"], div:has(> button[aria-current="page"]))'
 const activeTab = ':is([data-conversation-tabs] > [role="tab"], [data-dockkit-tab]:not([data-dockkit-tab-quiet]))[aria-selected="true"]'
-const guideCard = '[data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[aria-haspopup="menu"])'
+// Daylight gives the picker inside the terminal row its own compact surface.
+const guideCard = '[data-sidebar-right-guide] :is([data-sidebar-right-guide-entry], button[aria-haspopup="menu"]:not(:where(body:not([data-ds-dark-theme]) [data-sidebar-right-guide-entry] button)))'
+const daylight = `${glass} body:not([data-ds-dark-theme])`
+const shellPicker = '[data-sidebar-right-guide-entry="terminal"] button[aria-haspopup="menu"]'
 const compass = '[data-sidebar-right-guide] > span[aria-hidden="true"]:first-child'
 const catalogRow = '[data-plugin-panel] :is(li[data-plugin-item], li[data-plugin-package])'
 const arriving = `${moving}[data-df-arrival]:not(.df-off-glass)`
@@ -165,6 +168,45 @@ export const workbenchFinishCss = `
       [data-conversation-tabs], [data-dockkit-strip]) { --dsw-focus-ring-color: var(--df-wb-ink); }
   ${root}:not(.df-off-focusring) :is([data-sidebar-right-guide-entry], [data-dockkit-tab],
       [data-conversation-tabs] > [role="tab"]):focus-visible {
+    outline: 2px solid var(--df-wb-ink);
+    outline-offset: -2px;
+  }
+}
+
+/* The terminal row delegates almost its whole area to a stretched start
+   button. Enlarge the separate shell picker within the row's existing space. */
+${daylight} ${shellPicker} {
+  inline-size: 28px;
+  block-size: 28px;
+  min-inline-size: 28px;
+  min-block-size: 28px;
+  margin-block: -4px;
+  border-radius: 7px;
+}
+@media (forced-colors: none) and (prefers-contrast: no-preference) and (prefers-reduced-transparency: no-preference) {
+  ${daylight} ${selection} {
+    --df-wb-light: var(--df-wb-ink);
+    background-color: color-mix(in srgb, var(--df-shell-accent) 12%, var(--df-shell-surface));
+  }
+  ${daylight} ${shellPicker} {
+    color: var(--df-wb-ink);
+    background: color-mix(in srgb, var(--df-shell-accent) 8%, var(--df-shell-surface));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--df-wb-ink) 24%, transparent);
+  }
+  ${daylight} ${shellPicker}[aria-expanded="true"] {
+    background: color-mix(in srgb, var(--df-shell-accent) 18%, var(--df-shell-raised));
+    box-shadow: inset 0 0 0 1px var(--df-wb-ink);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    ${daylight} ${shellPicker}:hover:not([aria-expanded="true"]) {
+      background: color-mix(in srgb, var(--df-shell-accent) 14%, var(--df-shell-raised));
+    }
+  }
+}
+@media (forced-colors: none) {
+  ${glass}:not(.df-off-focusring) body:not([data-ds-dark-theme])
+    :is([data-sidebar-right-guide] button, [data-slot="sidebar"] [role="treeitem"],
+        [data-slot="sidebar"] button[aria-current]):focus-visible {
     outline: 2px solid var(--df-wb-ink);
     outline-offset: -2px;
   }

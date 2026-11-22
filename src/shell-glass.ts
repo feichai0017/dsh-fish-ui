@@ -194,11 +194,30 @@ ${sceneWindow} ${heroChip}:focus-visible {
   --df-card-edge: var(--df-shell-line);
   --df-card-halo: transparent;
   --df-card-focus: transparent;
-  background: var(--df-shell-film), var(--df-shell-card-fill);
+  background: var(--df-composer-film, var(--df-shell-film)), var(--df-composer-fill, var(--df-shell-card-fill));
   color: var(--df-shell-ink);
   box-shadow: inset 0 0 0 1px var(--df-card-edge), inset 0 2px 2px -1px var(--df-shell-highlight),
     inset 0 -2px 3px -2px var(--df-glass-rim-shade), 0 0 0 3px var(--df-card-focus),
     0 2px 4px -2px var(--df-shell-shadow), 0 12px 28px -14px var(--df-shell-shadow), 0 10px 32px -10px var(--df-card-halo);
+}
+/* The editor sits over pale reading paper in a session and open water on the
+   welcome page. Give the glass its own pigment in both places. Popovers inside
+   the editor keep their independent, denser menu material. */
+@media (prefers-contrast: no-preference) and (prefers-reduced-transparency: no-preference) and (forced-colors: none) {
+  ${daylightGlass} {
+    --df-composer-pigment: color-mix(in srgb, var(--df-shell-scene) 6%, #dce7ee);
+    --df-composer-fill: var(--df-composer-pigment);
+    --df-composer-film: linear-gradient(157deg, rgb(255 255 255 / .16), transparent 54%, rgb(78 114 139 / .035));
+  }
+  ${daylightGlass} [data-slot="sidebar.session.action"] {
+    --dsw-alias-button-elevated-fill: color-mix(in srgb, var(--df-composer-pigment) 55%, var(--df-shell-raised));
+    --dsw-specific-sidebar-glass-fill: var(--dsw-alias-button-elevated-fill);
+  }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    ${daylightGlass} {
+      --df-composer-fill: color-mix(in srgb, var(--df-composer-pigment), transparent var(--df-glass-transparency, 22%));
+    }
+  }
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root[data-fish-pace]:not(.df-off-glass) body {
