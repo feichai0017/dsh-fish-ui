@@ -54,7 +54,7 @@ Each arrival plays once per live turn. Opening history or loading older messages
 - **Catppuccin palette** supplies light and dark reading surfaces, text and borders. Accent color is a separate preference.
 - **Welcome illustration** uses the original whale-girl dot portrait on a blank session, with a faint dot field, a slow bottom wave and pointer ripples.
 - **Pointer physics**: a soft glow that follows the cursor, and a subtle 3D tilt on the composer.
-- **Thinking & text motion**: replies rise in, reasoning blocks shimmer gently, streaming text keeps a calm breathing rhythm.
+- **Thinking & text motion**: replies rise in and a gentle pulse along the reasoning rail marks activity. Text stays at its resting opacity after the entrance.
 - **Fish finish**: Maple Mono NF CN across the UI and code with `ss01` / `cv01` / `liga`, a 16px composer with accent focus glow, rounded code surfaces, and motion-safe hover.
 
 All motion is disabled under `prefers-reduced-motion`.

@@ -577,12 +577,8 @@ body {
 }
 
 :root:not(.df-off-bold) [data-chat-flow-kind="assistant-step"] :is(p, li, td, blockquote) :is(strong, b) {
-  color: var(--df-accent);
-  /* A soft halo so the accent reads as light rather than paint. */
-  text-shadow:
-    0 0 1px color-mix(in srgb, var(--df-accent) 55%, transparent),
-    0 0 8px color-mix(in srgb, var(--df-accent) 42%, transparent),
-    0 0 20px color-mix(in srgb, var(--df-accent) 22%, transparent);
+  color: color-mix(in srgb, var(--df-accent) 56%, currentColor);
+  text-shadow: none;
 }
 :root:not(.df-off-thinkinglabel) [data-chat-running] [class*="_runningText"] {
   opacity: 0;
@@ -1916,20 +1912,24 @@ body {
         transition-property: box-shadow, border-color;
       }
       :root:not(.df-off-textmotion) [data-chat-flow-kind="assistant-step"] {
-        animation: fish-rise .4s cubic-bezier(.16,1,.3,1) both;
+        animation: fish-rise .4s cubic-bezier(.16,1,.3,1);
       }
       @keyframes fish-rise {
         from { opacity: 0; transform: translateY(7px); }
         to { opacity: 1; transform: none; }
       }
       :root:not(.df-off-textmotion) [data-chat-group-part="reasoning"] {
-        border-left: 2px solid color-mix(in srgb, var(--df-accent, #4D6BFE) 45%, transparent);
-        padding-left: 10px;
-        animation: fish-breathe 4.5s ease-in-out infinite;
+        border-inline-start: 2px solid color-mix(in srgb, var(--df-accent) 45%, transparent);
+        padding-inline-start: 10px;
       }
-      @keyframes fish-breathe {
-        0%, 100% { opacity: .72; }
-        50% { opacity: 1; }
+      @media (prefers-reduced-motion: no-preference) {
+        :root:not(.df-off-textmotion,.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]) [data-chat-group-part="reasoning"] {
+          animation: df-reasoning-edge 4.5s ease-in-out infinite;
+        }
+      }
+      @keyframes df-reasoning-edge {
+        0%, 100% { border-inline-start-color: color-mix(in srgb, var(--df-accent) 45%, transparent); }
+        50% { border-inline-start-color: color-mix(in srgb, var(--df-accent) 72%, transparent); }
       }
       @media (prefers-reduced-motion: reduce) {
         .fish-cursor-glow { display: none; }

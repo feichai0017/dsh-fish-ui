@@ -220,15 +220,13 @@ export const DF_SCENE_ART_CSS = `
 html[data-df-window-scene] body {
   isolation: isolate;
   --df-reading-paper: var(--dsw-alias-bg-base, #f4f6fa);
-  --df-reading-center: 91%;
-  --df-reading-edge: 56%;
-  --df-welcome-wash: 53%;
+  --df-reading-center: 94%;
+  --df-reading-edge: 84%;
 }
 html[data-df-window-scene] body[data-ds-dark-theme] {
   --df-reading-paper: var(--dsw-alias-bg-base, #191d28);
-  --df-reading-center: 84%;
-  --df-reading-edge: 40%;
-  --df-welcome-wash: 28%;
+  --df-reading-center: 90%;
+  --df-reading-edge: 77%;
 }
 .df-window-painting, .df-window-transition {
   position: fixed;
@@ -246,15 +244,13 @@ html[data-df-window-scene] :is(div:has(> [data-rightbar-col]), div:has(> div > [
   [data-phase]:has(> [data-conversation-content])) {
   background: transparent;
 }
-html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame) {
+/* Harness wraps registered slots. Its per-pane phase is stable across those
+   wrappers and distinguishes the reading surface from the welcome artwork. */
+html[data-df-window-scene] [data-conversation-content]:is([data-content-phase="active"], [data-content-phase="settling"]) {
   isolation: isolate;
   background: radial-gradient(ellipse at 50% 42%,
     color-mix(in srgb, var(--df-reading-paper) var(--df-reading-center), transparent) 15%,
     color-mix(in srgb, var(--df-reading-paper) var(--df-reading-edge), transparent) 97%);
-}
-html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame[data-df-welcome="true"]) {
-  background: radial-gradient(ellipse at 50% 46%,
-    color-mix(in srgb, var(--df-reading-paper) var(--df-welcome-wash), transparent), transparent 90%);
 }
 .fish-backdrop {
   --df-weather-time: 29s;
@@ -262,7 +258,7 @@ html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame[data-df-
 }
 @media (forced-colors: active), (prefers-contrast: more) {
   .df-window-painting, .df-window-transition, .fish-backdrop { display: none; }
-  html[data-df-window-scene] [data-conversation-content]:has(> .dwe-frame) { background: var(--df-reading-paper); }
+  html[data-df-window-scene] [data-conversation-content][data-content-phase] { background: var(--df-reading-paper); }
 }
 html:is(.df-off-fishmotion, [data-fish-pace="still"]) .df-window-transition { display: none; }
 @media (prefers-reduced-motion: reduce) { .df-window-transition { display: none; } }

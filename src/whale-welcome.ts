@@ -3,7 +3,7 @@ import { portraitColumns, portraitGrid } from './whale-girl-dots'
 const portraitRows = portraitGrid.length
 const wordColumns = 140
 const wordRows = 58
-const levels = 12
+const levels = 16
 const tau = Math.PI * 2
 type Dot = { x: number; y: number; tone: number }
 type Portrait = { dots: Dot[]; highlights: Dot[] }
@@ -88,19 +88,19 @@ function wordmark() {
 }
 
 function printDots(ctx: CanvasRenderingContext2D, dots: Dot[], dx: number, dy: number, pitch: number,
-    radius: number, ink: string, boost: number, toneScale = 1) {
+    radius: number, ink: string, faint: number, solid: number) {
   const paths = Array.from({ length: levels }, () => new Path2D())
   for (const dot of dots) {
     const r = radius * (.82 + .36 * dot.tone)
     const x = dx + dot.x * pitch
     const y = dy + dot.y * pitch
-    const path = paths[Math.round(dot.tone * toneScale * (levels - 1))]
+    const path = paths[Math.round(dot.tone * (levels - 1))]
     path.moveTo(x + r, y)
     path.arc(x, y, r, 0, tau)
   }
   ctx.fillStyle = ink
   paths.forEach((path, level) => {
-    ctx.globalAlpha = Math.min(1, (.05 + .5 * level / (levels - 1)) * boost)
+    ctx.globalAlpha = faint + (solid - faint) * level / (levels - 1)
     ctx.fill(path)
   })
   ctx.globalAlpha = 1
@@ -129,7 +129,7 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   let frame = 0
   let wake: number | undefined
   let composer: Element | null = null
-  let w = 0, h = 0, dpr = 1, pitch = 0
+  let w = 0, h = 0, dpr = 1, pitch = 0, portraitRadius = 0
   let plateX = 0, plateY = 0, portraitX = 0, portraitY = 0
   let portrait = portraits.light
   let lightInk = '#9cbfff'
@@ -144,7 +144,9 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     const box = canvas.getBoundingClientRect()
     w = box.width
     h = box.height
-    dpr = Math.min(devicePixelRatio || 1, 2)
+    // Keep the cached ink at backing-store resolution through Retina display
+    // changes and browser zoom. Bound allocations on exceptionally large surfaces.
+    dpr = Math.min(devicePixelRatio || 1, Math.sqrt(16_777_216 / Math.max(1, w * h)))
     canvas.width = Math.round(w * dpr)
     canvas.height = Math.round(h * dpr)
     const owner = content?.closest('[data-phase]') || content
@@ -175,6 +177,7 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     const available = showWords ? Math.min(w * .95, limit * 1.055) : limit * .94
     const portraitDX = wordWidth + gutter
     pitch = Math.min(showWords ? referencePitch * 1.23 : 9, byHeight, (available - portraitDX) / portraitColumns)
+    portraitRadius = pitch * .315
     const plateW = portraitDX + portraitColumns * pitch
     const plateH = portraitRows * pitch
     const wordY = .57 * plateH - wordHeight / 2
@@ -200,15 +203,17 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     const dark = document.body.hasAttribute('data-ds-dark-theme')
     portrait = dark ? portraits.dark : portraits.light
     const mono = forcedColors.matches
-    const ink = mono ? 'CanvasText' : dark ? '#eceef2' : '#666c78'
+    const ink = mono ? 'CanvasText' : dark ? '#f0f6ff' : '#21324a'
     const style = getComputedStyle(canvas)
     const scene = style.getPropertyValue('--df-scene-glow').trim() || '#9cbfff'
     lightInk = 'color-mix(in srgb, ' + scene + ' 50%, ' + (dark ? '#f5fcff' : '#244e86') + ')'
-    printDots(printer, portrait.dots, portraitDX, 0, pitch, Math.max(.8, pitch * .28), ink, dark ? 1.15 : 1.8)
+    // Strong dot cores keep the eyes and fringe legible against the scene.
+    // Radius stays below half a cell at every weight, preserving the paper gaps.
+    printDots(printer, portrait.dots, portraitDX, 0, pitch, portraitRadius, ink, dark ? .13 : .18, dark ? .94 : .97)
     if (showWords) {
       const accent = mono ? ink : style.getPropertyValue('--df-accent').trim() || '#4d6bfe'
       wordmark().forEach((dots, i) => printDots(printer, dots, 0, wordY, wordPitch,
-        Math.max(.75, wordPitch * .34), i === 0 ? ink : accent, dark ? 1 : 1.2, .77))
+        Math.max(.75, wordPitch * .34), i === 0 ? ink : accent, dark ? .05 : .06, dark ? .435 : .522))
     }
     schedule()
   }
@@ -231,9 +236,12 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     }
     const progress = start === undefined || !moving ? 1 : smooth((now - Number(start)) / (flow ? 1860 : 2230))
     const height = plate.height / dpr
-    const lift = (1 - progress) * Math.min(14, height * .035)
+    const lift = Math.round((1 - progress) * Math.min(14, height * .035) * dpr) / dpr
     ctx.globalAlpha = smooth(progress * 1.5)
-    ctx.drawImage(plate, plateX, plateY + lift, plate.width / dpr, height)
+    // Copy already-antialiased dots one physical pixel to one physical pixel.
+    ctx.resetTransform()
+    ctx.drawImage(plate, Math.round(plateX * dpr), Math.round((plateY + lift) * dpr))
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.globalAlpha = 1
     if (progress < 1) {
       // Reveal the existing ink top to bottom, without moving individual
@@ -257,7 +265,7 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
       for (const dot of portrait.highlights) {
         const distance = Math.abs(.75 * dot.x / portraitColumns + .25 * dot.y / portraitRows - front)
         if (distance >= .14) continue
-        const radius = Math.max(.8, pitch * .28) * (.82 + .36 * dot.tone) * smooth(1 - distance / .14)
+        const radius = portraitRadius * (.82 + .36 * dot.tone) * smooth(1 - distance / .14)
         const x = portraitX + dot.x * pitch
         const y = portraitY + lift + dot.y * pitch
         path.moveTo(x + radius, y)
@@ -273,7 +281,8 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   }
 
   const size = new ResizeObserver(measure)
-  size.observe(canvas)
+  const physicalBox = typeof ResizeObserverEntry !== 'undefined' && 'devicePixelContentBoxSize' in ResizeObserverEntry.prototype
+  size.observe(canvas, { box: physicalBox ? 'device-pixel-content-box' : 'content-box' })
   const layout = new MutationObserver(() => {
     if (!composer?.isConnected) measure()
   })

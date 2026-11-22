@@ -5,6 +5,7 @@ const header = 'header[data-window-drag]:has(> [data-conversation-header-leading
 const dockCell = '[data-sidebar-right-panel] :is([data-dockkit-pane], [data-dockkit-empty], [data-dockkit-float])'
 const sceneWindow = ':root[data-fish-pace][data-df-window-scene]'
 const sceneGlass = `${sceneWindow}:not(.df-off-glass)`
+const daylightGlass = ':root[data-fish-pace]:not(.df-off-glass) body:not([data-ds-dark-theme])'
 const footer = '[data-shell-bottom]'
 const heroRow = '[data-content-phase="hero"] [class*="heroWorkspaceRow"]'
 const preset = '[data-slot="conversation.hero.agentPreset"]'
@@ -168,6 +169,20 @@ ${sceneWindow} ${heroChip}:focus-visible {
 :root[data-fish-pace] :is([data-slot="sidebar"], [data-dockkit-strip], [data-slot="conversation.header"]) {
   --dsw-alias-label-primary: var(--df-shell-ink);
   --dsw-alias-label-secondary: var(--df-shell-muted);
+}
+
+/* Cool blue scenery darkens light glass under small labels. Rebind just the
+   native text roles used by the workspace heading, shortcuts and controls. */
+@media (prefers-contrast: no-preference) and (forced-colors: none) {
+  ${daylightGlass} {
+    --df-glass-small-ink: color-mix(in srgb, var(--df-shell-muted) 64%, var(--df-shell-ink));
+  }
+  ${daylightGlass} :is([data-slot="sidebar"], [data-composer-card]) {
+    --dsw-alias-label-secondary: var(--df-glass-small-ink);
+  }
+  ${daylightGlass} :is([data-slot="sidebar"], [data-sidebar-right-guide], [role="menu"]:has(.df-ms-hero)) {
+    --dsw-alias-label-tertiary: var(--df-glass-small-ink);
+  }
 }
 
 /* A dense tinted face keeps the draft legible even without backdrop-filter.
