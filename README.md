@@ -8,7 +8,7 @@ Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fi
 
 ## Launch and welcome
 
-When Harness opens to a blank conversation, a stippled humpback rises out of the selected painting. Light follows along the glass edges of the real window, then settles. The same whale stays above the composer. Click, type or scroll at any time to finish the three-second opening. Restoring a conversation opens directly to its transcript.
+When Harness opens to a blank conversation, the original 104 × 73 whale-girl portrait comes into focus against the selected painting. Light follows along the glass edges of the real window, then settles. The portrait stays above the composer, with the dotted DeepSeek Harness wordmark alongside it on wider panels. Click, type or scroll at any time to finish the three-second opening. Restoring a conversation opens directly to its transcript.
 
 Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it in the scene gallery. Still mode, reduced motion, increased contrast and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
 
@@ -52,7 +52,7 @@ Each arrival plays once per live turn. Opening history or loading older messages
 ## What's inside
 
 - **Catppuccin palette** supplies light and dark reading surfaces, text and borders. Accent color is a separate preference.
-- **Welcome illustration** uses a single dot-matrix humpback on a blank session, with a faint dot field, a slow bottom wave and pointer ripples.
+- **Welcome illustration** uses the original whale-girl dot portrait on a blank session, with a faint dot field, a slow bottom wave and pointer ripples.
 - **Pointer physics**: a soft glow that follows the cursor, and a subtle 3D tilt on the composer.
 - **Thinking & text motion**: replies rise in, reasoning blocks shimmer gently, streaming text keeps a calm breathing rhythm.
 - **Fish finish**: Maple Mono NF CN across the UI and code with `ss01` / `cv01` / `liga`, a 16px composer with accent focus glow, rounded code surfaces, and motion-safe hover.
@@ -96,4 +96,4 @@ npm run build
 
 ## License
 
-Deep Fish UI is distributed under the [MIT License](./LICENSE). Notices for the inherited code ship in [THIRD-PARTY-NOTICES](./THIRD-PARTY-NOTICES).
+Deep Fish UI is distributed under the [MIT License](./LICENSE). Notices for the inherited code and dot artwork ship in [THIRD-PARTY-NOTICES](./THIRD-PARTY-NOTICES).

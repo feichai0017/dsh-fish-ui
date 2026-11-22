@@ -3,7 +3,7 @@ import { mountWhale, whalePaintEvent } from './whale-welcome'
 export const staticArrivalMedia = '(prefers-reduced-motion: reduce), (forced-colors: active), (prefers-contrast: more)'
 let currentLaunch: (() => void) | undefined
 
-/** Light the real window around the existing whale. Only a settings preview needs another canvas. */
+/** Light the real window around the welcome portrait. Only a settings preview needs another canvas. */
 export function playFishLaunch(holder: HTMLElement, preview = false) {
   currentLaunch?.()
   const root = document.documentElement
@@ -57,18 +57,29 @@ export function playFishLaunch(holder: HTMLElement, preview = false) {
 }
 
 export const DF_LAUNCH_CSS = `
-.dwe-whale, .df-whale-preview {
-  --df-whale-0: #587caa; --df-whale-1: #4a739e; --df-whale-2: #34577f;
-  --df-whale-3: #254770; --df-whale-4: #193958; --df-whale-5: #102f50;
+/* Quiet the painting directly behind the original halftone. Its rim follows the
+   measured artwork when the composer or either side of the window moves. */
+.dwe-water {
+  --df-field-ink: #203f68; --df-portrait-paper: #f5f7fc; --df-portrait-wash: 93%;
+  --df-portrait-x: 50%; --df-portrait-y: 32%; --df-portrait-w: 54vw; --df-portrait-h: 36vh;
+  position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+  background:
+    radial-gradient(ellipse calc(var(--df-portrait-w) * 1.02) calc(var(--df-portrait-h) * 1.06)
+      at var(--df-portrait-x) var(--df-portrait-y),
+      color-mix(in srgb, var(--df-portrait-paper) var(--df-portrait-wash), transparent) 30%,
+      color-mix(in srgb, var(--df-portrait-paper) 75%, transparent) 53%,
+      color-mix(in srgb, var(--df-portrait-paper) 25%, transparent) 78%, transparent),
+    radial-gradient(ellipse max(1px, var(--df-word-w, 0px)) max(1px, var(--df-word-h, 0px))
+      at var(--df-word-x, 0px) var(--df-word-y, 0px),
+      color-mix(in srgb, var(--df-portrait-paper) 69%, transparent) 20%, transparent 95%);
 }
-body[data-ds-dark-theme] .dwe-whale, .df-whale-preview {
-  --df-whale-0: #476a91; --df-whale-1: #6a92b9; --df-whale-2: #85b2d6;
-  --df-whale-3: #a9cbe4; --df-whale-4: #c7e4f3; --df-whale-5: #ebf8ff;
+body[data-ds-dark-theme] .dwe-water { --df-field-ink: #c4e6ff; --df-portrait-paper: #0b1732; --df-portrait-wash: 91%; }
+.dwe-water > .df-portrait-light {
+  position: absolute; left: var(--df-portrait-x); top: var(--df-portrait-y);
+  width: calc(var(--df-portrait-w) * 1.6); height: calc(var(--df-portrait-h) * 1.7);
+  transform: translate(-50%, -50%); opacity: 0;
+  background: radial-gradient(ellipse 48% 26% at 40% 33%, color-mix(in srgb, var(--df-scene-glow, #9cbfff) 48%, transparent), transparent);
 }
-.dwe-water { position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
-  --df-field-ink: #203f68; --df-water-haze: #eff5fc91;
-  background: radial-gradient(ellipse 42% 30% at 50% 30%, var(--df-water-haze), transparent); }
-body[data-ds-dark-theme] .dwe-water { --df-field-ink: #c4e6ff; --df-water-haze: #071a3d83; }
 .dwe-water::before, .dwe-water::after { content: ''; position: absolute; inset: 0; }
 :root:not(.df-off-field) .dwe-water::before {
   background-image: radial-gradient(circle, var(--df-field-ink) .62px, transparent .95px);
@@ -86,14 +97,21 @@ body[data-ds-dark-theme] .dwe-water { --df-field-ink: #c4e6ff; --df-water-haze: 
   :root:not(.df-off-wave,.df-off-fishmotion,[data-fish-paused],[data-fish-pace="still"]) .dwe-water::after {
     animation: df-welcome-tide 17s ease-in-out infinite alternate;
   }
+  :root:not(.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]) .dwe-frame[data-df-whale-start] .df-portrait-light {
+    animation: df-portrait-rise-light 2.7s ease-in-out both;
+  }
+  @keyframes df-portrait-rise-light {
+    0%, 100% { opacity: 0; }
+    20% { opacity: .23; }
+    52% { opacity: .48; }
+  }
   @keyframes df-welcome-tide { to { transform: translate(2%, -4%) scale(1.04); } }
 }
 .fish-cover > .df-whale-preview { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%;
-  pointer-events: none; background: radial-gradient(ellipse, #061a3796, #12264a59); }
+  pointer-events: none; background: radial-gradient(ellipse, #f4f7ffed, #e6effbdc 52%, #dfebf7a3); }
+body[data-ds-dark-theme] .fish-cover > .df-whale-preview { background: radial-gradient(ellipse, #0b1732e6, #142b4cb3 52%, #12264a59); }
 .fish-cover[data-df-whale-start] :is(.fish-cover-copy,.fish-swatches) { visibility: hidden; }
 @media (forced-colors: active) {
   .dwe-water { display: none; }
-  .dwe-whale { --df-whale-0: CanvasText; --df-whale-1: CanvasText; --df-whale-2: CanvasText;
-    --df-whale-3: CanvasText; --df-whale-4: CanvasText; --df-whale-5: CanvasText; }
 }
 `

@@ -188,7 +188,7 @@ window.__ModuleLoader__.load({
           'aria-label': (dfUsesChinese() ? '更换场景，当前为' : 'Change scene, currently ') + label },
           h(FishIcon, { name: scene.icon, size: 15 }), h('span', null, label),
           h('span', { 'aria-hidden': true, className: 'df-welcome-chevron' }, '›')) : null,
-        show && h('div', { className: 'dwe-water', 'aria-hidden': true }, h('i')),
+        show && h('div', { className: 'dwe-water', 'aria-hidden': true }, h('span', { className: 'df-portrait-light' }), h('i')),
         show ? h('canvas', { key: 'mascot', ref: canvasRef, className: 'dwe-whale', 'aria-hidden': 'true' }) : null,
         children)
     }
@@ -213,7 +213,7 @@ const CSS = `
   pointer-events: none;
 }
 
-/* Retain the host title for assistive technology while the whale occupies its visual seat. */
+/* Retain the host title for assistive technology while the portrait occupies its visual seat. */
 .dwe-frame:has(> canvas.dwe-whale) [data-home-whale],
 .dwe-frame:has(> canvas.dwe-whale) [data-slot="conversation.hero.brand.mark"] { display: none !important; }
 .dwe-frame:has(> canvas.dwe-whale) [class*="headline"] [class*="titleGroup"] {
@@ -1657,7 +1657,7 @@ body {
           sidebar: '侧边栏',
         },
         items: {
-          hero: ['点阵鲸鱼', '在欢迎页显示座头鲸的点阵插画'],
+          hero: ['点阵鲸鱼娘', '在欢迎页显示原版鲸鱼娘立绘'],
           field: ['\u80cc\u666f\u70b9\u9635', '\u94fa\u6ee1\u6574\u9875\u7684\u6de1\u70b9\u9635'],
           wave: ['\u5e95\u90e8\u6ce2\u6d6a', '\u9875\u9762\u5e95\u90e8\u7f13\u6162\u6d41\u52a8\u7684\u660e\u6697\u6ce2'],
           ripple: ['\u6307\u9488\u6d9f\u6f2a', '\u9f20\u6807\u5212\u8fc7\u70b9\u9635\u65f6\u8361\u5f00\u7684\u5149\u73af'],
@@ -1678,7 +1678,7 @@ body {
         lead: 'Everything here applies immediately and is remembered per profile.',
         groups: { hero: 'Welcome page', thinking: 'Thinking', composer: 'Composer', accents: 'Accents', sidebar: 'Sidebar' },
         items: {
-          hero: ['Dot artwork', 'The stippled humpback on the welcome page'],
+          hero: ['Dot portrait', 'Show the original whale-girl artwork on the welcome page'],
           field: ['Dot field', 'The faint lattice behind everything'],
           wave: ['Bottom wave', 'The slow brightness wave along the bottom edge'],
           ripple: ['Pointer ripples', 'Light rings where the pointer crosses the field'],

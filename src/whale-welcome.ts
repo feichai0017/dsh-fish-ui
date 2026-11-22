@@ -1,75 +1,114 @@
-// A humpback in profile. Sample its outline, ventral grooves and far flipper
-// on the same grid, so the resting illustration is the last frame of the dive.
-const width = 320
-const height = 142
-const pitch = 2.35
+import { portraitColumns, portraitGrid } from './whale-girl-dots'
+
+const portraitRows = portraitGrid.length
+const wordColumns = 140
+const wordRows = 58
+const levels = 12
 const tau = Math.PI * 2
-const body = 'M59 76C78 74 94 64 111 58C120 52 120 41 117 36C126 37 131 44 133 48C175 31 207 23 239 22C265 21 290 25 303 32Q310 36 306 41C293 65 263 82 230 89C191 97 157 91 129 87C102 83 78 85 62 87C50 98 35 105 14 103C25 99 32 89 40 84C26 81 15 65 9 48C28 61 47 59 59 76Z'
-const flipper = 'M221 67C213 83 192 109 163 123Q152 128 145 127C153 120 160 110 165 100C175 84 188 73 200 68Z'
-type Dot = { x: number; y: number; tone: number; offset: number }
-let cells: Dot[] | undefined
-function whaleCells() {
-  if (cells) return cells
-  const sample = document.createElement('canvas')
-  sample.width = width
-  sample.height = height
-  const brush = sample.getContext('2d', { willReadFrequently: true })
-  if (!brush) return []
-  const outline = new Path2D(body)
-  const shade = brush.createLinearGradient(0, 22, 14, 102)
-  shade.addColorStop(0, '#ffffff')
-  shade.addColorStop(.35, '#d8d8d8')
-  shade.addColorStop(.62, '#767676')
-  shade.addColorStop(1, '#a4a4a4')
-  brush.fillStyle = '#777'
-  brush.fill(new Path2D('M223 66Q235 85 231 104Q219 104 198 79Z'))
-  brush.fillStyle = shade
-  brush.fill(outline)
-  brush.save()
-  brush.clip(outline)
-  brush.lineWidth = 1.65
-  brush.strokeStyle = '#f9f9f9'
-  brush.stroke(outline)
-  brush.strokeStyle = '#676767'
-  brush.lineWidth = 2.8
-  brush.stroke(new Path2D('M308 36C292 48 266 55 242 55'))
-  for (let i = 0; i < 5; i++) {
-    const groove = new Path2D()
-    groove.moveTo(303 - i * 2, 42 + i * 2)
-    groove.quadraticCurveTo(263 - i, 69 + i * 4, 216 - i * 6, 65 + i * 5)
-    brush.strokeStyle = '#dcdcdc'
-    brush.lineWidth = 1.45
-    brush.stroke(groove)
-  }
-  brush.fillStyle = '#2b2b2b'
-  brush.beginPath()
-  brush.ellipse(241, 52, 3.9, 2.6, -.18, 0, tau)
-  brush.fill()
-  brush.restore()
-  const fin = new Path2D(flipper)
-  const finLight = brush.createLinearGradient(190, 70, 205, 95)
-  finLight.addColorStop(0, '#666')
-  finLight.addColorStop(.52, '#bbb')
-  finLight.addColorStop(1, '#fff')
-  brush.fillStyle = finLight
-  brush.fill(fin)
-  const pixels = brush.getImageData(0, 0, width, height).data
-  cells = []
-  for (let y = pitch / 2; y < height; y += pitch) {
-    for (let x = pitch / 2; x < width; x += pitch) {
-      const i = (Math.floor(y) * width + Math.floor(x)) * 4
-      if (pixels[i + 3] < 110) continue
-      const tone = pixels[i] / 255
-      const offset = .24 * (1 - x / width) + .13 * y / height + .035 * Math.sin(x * .12 + y * .08)
-      cells.push({ x, y, tone, offset })
+type Dot = { x: number; y: number; tone: number }
+type Portrait = { dots: Dot[]; highlights: Dot[] }
+
+// Use the original dark-theme paper cut: the unprinted interior of the face
+// and apron becomes light ink, and the dark hair is left open to the scene.
+function readPortraits() {
+  const light: Portrait = { dots: [], highlights: [] }
+  const dark: Portrait = { dots: [], highlights: [] }
+  const ink = portraitGrid.map(row => Uint8Array.from(row, char => parseInt(char, 16)))
+  const firstColumn = ink.map(row => row.findIndex(Boolean))
+  const lastColumn = new Int16Array(portraitRows).fill(-1)
+  const firstRow = new Int16Array(portraitColumns).fill(portraitRows)
+  const lastRow = new Int16Array(portraitColumns).fill(-1)
+  for (let y = 0; y < portraitRows; y++) {
+    for (let x = 0; x < portraitColumns; x++) {
+      if (ink[y][x] === 0) continue
+      lastColumn[y] = x
+      if (firstRow[x] === portraitRows) firstRow[x] = y
+      lastRow[x] = y
     }
   }
-  return cells
+  for (let y = 0; y < portraitRows; y++) {
+    for (let x = 0; x < portraitColumns; x++) {
+      const weight = ink[y][x]
+      // Restrict the passing light to actual drawn edges. The eyes, mouth,
+      // cheeks and surrounding fringe are excluded from the accent pass.
+      const outsideFace = ((x - 55) / 19) ** 2 + ((y - 36) / 15) ** 2 > 1
+      const edge = outsideFace && (x + 2 * y) % 3 === 0 &&
+        Math.max(Math.abs(weight - (ink[y][x - 1] ?? 0)), Math.abs(weight - (ink[y - 1]?.[x] ?? 0))) >= 3
+      if (weight) {
+        const dot = { x: x + .5, y: y + .5, tone: weight / 15 }
+        light.dots.push(dot)
+        if (edge) light.highlights.push(dot)
+      }
+      if (x < firstColumn[y] || x > lastColumn[y] || y < firstRow[x] || y > lastRow[x]) continue
+      const tone = 1 - weight / 15
+      if (tone < .45) continue
+      const dot = { x: x + .5, y: y + .5, tone }
+      dark.dots.push(dot)
+      if (edge) dark.highlights.push(dot)
+    }
+  }
+  return { light, dark }
+}
+let portraits: ReturnType<typeof readPortraits> | undefined
+
+let words: Dot[][] | undefined
+function wordmark() {
+  if (words) return words
+  const large = document.createElement('canvas')
+  const small = document.createElement('canvas')
+  large.width = 4 * wordColumns
+  large.height = 4 * wordRows
+  small.width = wordColumns
+  small.height = wordRows
+  const brush = large.getContext('2d')
+  const reader = small.getContext('2d', { willReadFrequently: true })
+  if (!brush || !reader) return []
+  const lines = ['deepseek', 'harness']
+  const family = '"Segoe UI", system-ui, sans-serif'
+  brush.font = 'italic 700 100px ' + family
+  brush.letterSpacing = '6px'
+  const widest = Math.max(...lines.map(line => brush.measureText(line).width), 1)
+  brush.font = 'italic 700 ' + (large.width * .94 / widest * 100).toFixed(1) + 'px ' + family
+  brush.textBaseline = 'middle'
+  brush.fillStyle = 'rgba(255,255,255,.92)'
+  words = lines.map((line, i) => {
+    brush.clearRect(0, 0, large.width, large.height)
+    brush.fillText(line, large.width * .02, large.height * (.34 + .4 * i))
+    reader.clearRect(0, 0, wordColumns, wordRows)
+    reader.drawImage(large, 0, 0, wordColumns, wordRows)
+    const data = reader.getImageData(0, 0, wordColumns, wordRows).data
+    const dots: Dot[] = []
+    for (let n = 0; n < wordColumns * wordRows; n++) {
+      const alpha = data[n * 4 + 3] / 255
+      if (alpha >= .08) dots.push({ x: n % wordColumns + .5, y: Math.floor(n / wordColumns) + .5, tone: Math.min(1, alpha * 1.25) })
+    }
+    return dots
+  })
+  return words
 }
 
-function smooth(value: number) {
-  const v = Math.min(1, Math.max(0, value))
-  return v * v * (3 - 2 * v)
+function printDots(ctx: CanvasRenderingContext2D, dots: Dot[], dx: number, dy: number, pitch: number,
+    radius: number, ink: string, boost: number, toneScale = 1) {
+  const paths = Array.from({ length: levels }, () => new Path2D())
+  for (const dot of dots) {
+    const r = radius * (.82 + .36 * dot.tone)
+    const x = dx + dot.x * pitch
+    const y = dy + dot.y * pitch
+    const path = paths[Math.round(dot.tone * toneScale * (levels - 1))]
+    path.moveTo(x + r, y)
+    path.arc(x, y, r, 0, tau)
+  }
+  ctx.fillStyle = ink
+  paths.forEach((path, level) => {
+    ctx.globalAlpha = Math.min(1, (.05 + .5 * level / (levels - 1)) * boost)
+    ctx.fill(path)
+  })
+  ctx.globalAlpha = 1
+}
+
+function smooth(v: number) {
+  const t = Math.max(0, Math.min(1, v))
+  return t * t * (3 - 2 * t)
 }
 
 export const whalePaintEvent = 'df-whale-paint'
@@ -77,16 +116,28 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   const ctx = canvas.getContext('2d')
   const holder = canvas.parentElement
   if (!ctx || !holder) return () => {}
-  const dots = whaleCells()
-  const content = canvas.closest<HTMLElement>('[data-conversation-content]')
+  portraits ??= readPortraits()
   const root = document.documentElement
+  const water = holder.querySelector<HTMLElement>('.dwe-water')
+  const content = canvas.closest<HTMLElement>('[data-conversation-content]')
   const media = matchMedia('(prefers-reduced-motion: reduce), (forced-colors: active), (prefers-contrast: more)')
+  const forcedColors = matchMedia('(forced-colors: active)')
   const events = new AbortController()
+  const plate = document.createElement('canvas')
+  const printer = plate.getContext('2d')
+  if (!printer) return () => {}
   let frame = 0
+  let wake: number | undefined
   let composer: Element | null = null
-  let left = 0, top = 0, scale = 1, w = 0, h = 0, dpr = 1
-  let colors: string[] = []
+  let w = 0, h = 0, dpr = 1, pitch = 0
+  let plateX = 0, plateY = 0, portraitX = 0, portraitY = 0
+  let portrait = portraits.light
+  let lightInk = '#9cbfff'
+  let lastStart: string | undefined
+  let sweepAt = performance.now() + 7000
+
   function schedule() {
+    clearTimeout(wake)
     if (!frame && !document.hidden) frame = requestAnimationFrame(draw)
   }
   function measure() {
@@ -96,7 +147,6 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     dpr = Math.min(devicePixelRatio || 1, 2)
     canvas.width = Math.round(w * dpr)
     canvas.height = Math.round(h * dpr)
-    // The composer can mount after the frame and can live beside the scroll body.
     const owner = content?.closest('[data-phase]') || content
     const card = content?.querySelector('[data-composer-card]') || owner?.querySelector('[data-composer-card]') || null
     if (composer !== card) {
@@ -105,47 +155,123 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
       composer = card
     }
     const bounds = composer?.getBoundingClientRect()
-    const ceiling = preview ? 4 : Math.min(44, h * .085)
-    const floor = bounds?.width && bounds.top > box.top + 16 ? Math.min(h, bounds.top - box.top - Math.min(46, h * .09)) : h * (preview ? .98 : .62)
-    const room = Math.max(0, floor - ceiling)
-    scale = Math.max(0, Math.min((w * (preview ? .78 : .82)) / width, (room * .92) / height, preview ? 1.55 : 2.28))
-    const center = bounds?.width ? bounds.left + bounds.width / 2 - box.left : w / 2
-    left = Math.max(0, Math.min(w - width * scale, center - width * scale / 2))
-    top = ceiling + (room - height * scale) * .59
-    const ink = getComputedStyle(canvas)
-    colors = Array.from({length: 6}, (_, i) => ink.getPropertyValue('--df-whale-' + i).trim() || '#98c8ef')
+    const hasCard = bounds && bounds.width > 160 && !preview
+    const limit = hasCard ? Math.min(w, bounds.width) : w * .94
+    const center = hasCard ? bounds.left + bounds.width / 2 - box.left : w / 2
+    const controls = content?.querySelector('[class*="heroWorkspaceRow"]')?.getBoundingClientRect()
+    const cardTop = hasCard ? bounds.top - box.top : 0
+    const floor = preview ? h - 4 : cardTop > 24
+      ? (controls?.height ? Math.min(cardTop, controls.top - box.top) : cardTop) - 6 : h * .63
+    const room = Math.max(0, Math.min(h - 4, floor) - 6)
+    const byHeight = room / portraitRows
+    const referencePitch = Math.min(9, limit * .94 / (wordColumns + portraitColumns - 30), byHeight)
+    const showWords = !preview && (referencePitch >= 3.6 || (w >= 960 && referencePitch >= 3.3))
+    // The lettering occupies a smaller grid of its own. Keep a clear gutter
+    // beside it, and give the rest of the space above the controls to the face.
+    const wordPitch = showWords ? referencePitch * .71 : 0
+    const wordWidth = wordColumns * wordPitch
+    const wordHeight = wordRows * wordPitch
+    const gutter = showWords ? Math.min(32, Math.max(16, limit * .032)) : 0
+    const available = showWords ? Math.min(w * .95, limit * 1.055) : limit * .94
+    const portraitDX = wordWidth + gutter
+    pitch = Math.min(showWords ? referencePitch * 1.23 : 9, byHeight, (available - portraitDX) / portraitColumns)
+    const plateW = portraitDX + portraitColumns * pitch
+    const plateH = portraitRows * pitch
+    const wordY = .57 * plateH - wordHeight / 2
+    // Place the cached layer on physical pixel boundaries at rest.
+    plateX = Math.round(Math.max(0, Math.min(w - plateW, center - plateW / 2)) * dpr) / dpr
+    plateY = Math.round(Math.max(0, preview ? (h - plateH) / 2 : floor - plateH) * dpr) / dpr
+    portraitX = plateX + portraitDX
+    portraitY = plateY
+    if (water) {
+      water.style.setProperty('--df-portrait-x', (portraitX + portraitColumns * pitch / 2) + 'px')
+      water.style.setProperty('--df-portrait-y', (portraitY + plateH / 2) + 'px')
+      water.style.setProperty('--df-portrait-w', (portraitColumns * pitch) + 'px')
+      water.style.setProperty('--df-portrait-h', plateH + 'px')
+      water.style.setProperty('--df-word-x', (showWords ? plateX + wordWidth / 2 : 0) + 'px')
+      water.style.setProperty('--df-word-y', (showWords ? plateY + wordY + wordHeight / 2 : 0) + 'px')
+      water.style.setProperty('--df-word-w', wordWidth + 'px')
+      water.style.setProperty('--df-word-h', wordHeight + 'px')
+    }
+    plate.width = Math.ceil(plateW * dpr)
+    plate.height = Math.ceil(plateH * dpr)
+    if (!plate.width || !plate.height) return schedule()
+    printer.setTransform(dpr, 0, 0, dpr, 0, 0)
+    const dark = document.body.hasAttribute('data-ds-dark-theme')
+    portrait = dark ? portraits.dark : portraits.light
+    const mono = forcedColors.matches
+    const ink = mono ? 'CanvasText' : dark ? '#eceef2' : '#666c78'
+    const style = getComputedStyle(canvas)
+    const scene = style.getPropertyValue('--df-scene-glow').trim() || '#9cbfff'
+    lightInk = 'color-mix(in srgb, ' + scene + ' 50%, ' + (dark ? '#f5fcff' : '#244e86') + ')'
+    printDots(printer, portrait.dots, portraitDX, 0, pitch, Math.max(.8, pitch * .28), ink, dark ? 1.15 : 1.8)
+    if (showWords) {
+      const accent = mono ? ink : style.getPropertyValue('--df-accent').trim() || '#4d6bfe'
+      wordmark().forEach((dots, i) => printDots(printer, dots, 0, wordY, wordPitch,
+        Math.max(.75, wordPitch * .34), i === 0 ? ink : accent, dark ? 1 : 1.2, .77))
+    }
     schedule()
   }
+
   function draw(now: number) {
     frame = 0
-    if (!ctx || document.hidden || !w || !h) return
+    if (document.hidden || !w || !h) return
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.clearRect(0, 0, w, h)
-    if (scale < .12) return
     const start = holder.dataset.dfWhaleStart
-    if (start === undefined && root.hasAttribute('data-df-await-arrival') && !preview) return
-    const progress = start === undefined || media.matches ? 1 : Math.min(1, Math.max(0, (now - Number(start)) / 2230))
-    const batches = Array.from({length: 6}, () => new Path2D())
-    ctx.translate(left, top)
-    ctx.scale(scale, scale)
-    for (const dot of dots) {
-      const rise = progress === 1 ? 1 : smooth((progress - dot.offset) / .63)
-      if (rise < .014) continue
-      const depth = 1 - rise
-      const x = dot.x - depth * (5 + 3 * Math.sin(dot.y * .09))
-      const y = dot.y + depth * (11 + dot.y * .095)
-      const r = (.39 + dot.tone * .67) * (.22 + .78 * rise)
-      const light = Math.min(5, Math.floor((.13 + dot.tone * .86) * rise * 6))
-      const path = batches[light]
-      path.moveTo(x + r, y)
-      path.arc(x, y, r, 0, tau)
+    if (!plate.width || !plate.height || (start === undefined && root.hasAttribute('data-df-await-arrival') && !preview)) return
+    const moving = !media.matches && !root.matches('.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]')
+    const flow = root.dataset.fishPace === 'flow'
+    const quiet = flow ? 5900 : 10200
+    const sweepMs = flow ? 1300 : 1740
+    if (start !== lastStart) {
+      if (start !== undefined) sweepAt = Number(start) + (flow ? 1370 : 1610)
+      else if (now - Number(lastStart) < 2900) sweepAt = now + quiet
+      lastStart = start
     }
-    for (let i = 0; i < batches.length; i++) {
-      ctx.fillStyle = colors[i]
-      ctx.fill(batches[i])
+    const progress = start === undefined || !moving ? 1 : smooth((now - Number(start)) / (flow ? 1860 : 2230))
+    const height = plate.height / dpr
+    const lift = (1 - progress) * Math.min(14, height * .035)
+    ctx.globalAlpha = smooth(progress * 1.5)
+    ctx.drawImage(plate, plateX, plateY + lift, plate.width / dpr, height)
+    ctx.globalAlpha = 1
+    if (progress < 1) {
+      // Reveal the existing ink top to bottom, without moving individual
+      // dots off their grid or quantising their per-cell alpha every frame.
+      const front = plateY + lift + height * (1.68 * progress - .02)
+      const fade = ctx.createLinearGradient(0, front - height * .63, 0, front)
+      fade.addColorStop(0, '#000')
+      fade.addColorStop(1, 'transparent')
+      ctx.globalCompositeOperation = 'destination-in'
+      ctx.fillStyle = fade
+      ctx.fillRect(0, 0, w, h)
+      ctx.globalCompositeOperation = 'source-over'
     }
-    if (progress < 1) schedule()
+    if (!moving) return
+    const cycle = quiet + sweepMs
+    const age = now - sweepAt
+    const phase = age < 0 ? age : age % cycle
+    if (phase >= 0 && phase < sweepMs) {
+      const front = phase / sweepMs * 1.32 - .16
+      const path = new Path2D()
+      for (const dot of portrait.highlights) {
+        const distance = Math.abs(.75 * dot.x / portraitColumns + .25 * dot.y / portraitRows - front)
+        if (distance >= .14) continue
+        const radius = Math.max(.8, pitch * .28) * (.82 + .36 * dot.tone) * smooth(1 - distance / .14)
+        const x = portraitX + dot.x * pitch
+        const y = portraitY + lift + dot.y * pitch
+        path.moveTo(x + radius, y)
+        path.arc(x, y, radius, 0, tau)
+      }
+      ctx.globalAlpha = (flow ? .5 : .36) * progress
+      ctx.fillStyle = lightInk
+      ctx.fill(path)
+      ctx.globalAlpha = 1
+    }
+    if (progress < 1 || (phase >= 0 && phase < sweepMs)) schedule()
+    else wake = window.setTimeout(schedule, phase < 0 ? -phase : cycle - phase)
   }
+
   const size = new ResizeObserver(measure)
   size.observe(canvas)
   const layout = new MutationObserver(() => {
@@ -155,8 +281,10 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   const theme = new MutationObserver(measure)
   theme.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
   theme.observe(root, { attributes: true, attributeFilter: ['data-df-window-scene'] })
+  const motion = new MutationObserver(schedule)
+  motion.observe(root, { attributes: true, attributeFilter: ['class', 'data-fish-pace', 'data-fish-paused'] })
   for (const event of ['visibilitychange', whalePaintEvent]) document.addEventListener(event, schedule, { signal: events.signal })
-  media.addEventListener('change', schedule, { signal: events.signal })
+  media.addEventListener('change', measure, { signal: events.signal })
   let ripple: Animation | undefined
   const ring = holder.querySelector<HTMLElement>('.dwe-water i')
   if (content && ring && !preview) {
@@ -177,5 +305,14 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     media.addEventListener('change', () => ripple?.cancel(), { signal: events.signal })
   }
   measure()
-  return () => { ripple?.cancel(); events.abort(); cancelAnimationFrame(frame); size.disconnect(); layout.disconnect(); theme.disconnect() }
+  return () => {
+    ripple?.cancel()
+    events.abort()
+    cancelAnimationFrame(frame)
+    clearTimeout(wake)
+    size.disconnect()
+    layout.disconnect()
+    theme.disconnect()
+    motion.disconnect()
+  }
 }
