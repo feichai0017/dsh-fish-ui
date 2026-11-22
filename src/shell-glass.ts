@@ -16,35 +16,35 @@ export const shellGlassCss = `
   --df-shell-scene: var(--df-scene-glow, #9cbfff);
   --df-shell-depth: var(--df-scene-deep, #152665);
   --df-shell-accent: var(--df-accent, #4d6bfe);
-  --df-shell-surface: color-mix(in srgb, var(--df-shell-scene) 14%, #f5f7fa);
-  --df-shell-raised: color-mix(in srgb, var(--df-shell-scene) 7%, #fcfdff);
-  --df-shell-line: color-mix(in srgb, var(--df-shell-depth) 20%, var(--df-shell-surface));
+  --df-shell-surface: color-mix(in srgb, var(--df-shell-scene) 5%, #f6f6f1);
+  --df-shell-raised: color-mix(in srgb, var(--df-shell-scene) 3%, #fffef9);
+  --df-shell-line: color-mix(in srgb, var(--df-shell-depth) 16%, var(--df-shell-surface));
   --df-shell-ink: #202839;
   --df-shell-muted: #48566a;
   --df-glass-keylight: rgb(255 255 255 / .97);
   --df-glass-rim-light: rgb(255 255 255 / .70);
   --df-glass-rim-shade: rgb(34 54 82 / .22);
-  --df-glass-saturation: 1.26;
+  --df-glass-saturation: 1.08;
   --df-glass-fresnel: linear-gradient(145deg, var(--df-glass-keylight), var(--df-glass-rim-light) 16%,
     transparent 41%, var(--df-glass-rim-shade) 68%, var(--df-glass-rim-light) 96%);
   --df-shell-highlight: var(--df-glass-rim-light);
   --df-shell-shadow: rgb(30 45 70 / .18);
-  --df-shell-reflected-sky: rgb(255 255 255 / .32);
+  --df-shell-reflected-sky: rgb(255 255 252 / .22);
   --df-shell-film: radial-gradient(ellipse at 0% 0%, var(--df-shell-reflected-sky), transparent 58%),
-    linear-gradient(135deg, transparent 25%, color-mix(in srgb, var(--df-shell-scene) 9%, transparent) 100%);
+    linear-gradient(135deg, transparent 35%, color-mix(in srgb, var(--df-shell-scene) 5%, transparent));
   --df-shell-chrome-fill: var(--df-shell-surface);
   --df-shell-card-fill: var(--df-shell-raised);
 }
 :root[data-fish-pace] body[data-ds-dark-theme] {
-  --df-shell-surface: color-mix(in srgb, var(--df-shell-depth) 33%, #171c29);
-  --df-shell-raised: color-mix(in srgb, var(--df-shell-scene) 8%, var(--df-shell-surface));
-  --df-shell-line: color-mix(in srgb, var(--df-shell-scene) 23%, var(--df-shell-surface));
+  --df-shell-surface: color-mix(in srgb, var(--df-shell-depth) 10%, #17242d);
+  --df-shell-raised: color-mix(in srgb, var(--df-shell-scene) 7%, var(--df-shell-surface));
+  --df-shell-line: color-mix(in srgb, var(--df-shell-scene) 19%, var(--df-shell-surface));
   --df-shell-ink: #f0f3fd;
   --df-shell-muted: #bbc6d9;
   --df-glass-keylight: rgb(243 250 255 / .59);
   --df-glass-rim-light: rgb(226 240 255 / .23);
   --df-glass-rim-shade: rgb(1 8 20 / .56);
-  --df-glass-saturation: 1.32;
+  --df-glass-saturation: 1.12;
   --df-shell-reflected-sky: rgb(221 237 255 / .09);
   --df-shell-shadow: rgb(3 9 19 / .46);
 }
@@ -350,11 +350,11 @@ ${sceneWindow} ${heroChip}:focus-visible {
   }
 }
 :root[data-fish-pace]:not(.df-off-focusring) [data-composer-card]:has(:is([contenteditable="true"], [role="textbox"], textarea):focus) {
-  --df-card-edge: var(--df-shell-accent);
-  --df-card-focus: color-mix(in srgb, var(--df-shell-accent) 16%, transparent);
+  --df-card-edge: color-mix(in srgb, var(--df-shell-accent) 67%, var(--df-shell-line));
+  --df-card-focus: color-mix(in srgb, var(--df-shell-accent) 7%, transparent);
 }
 :root[data-fish-pace]:not(.df-off-fishglow) [data-composer-card]:focus-within {
-  --df-card-halo: color-mix(in srgb, var(--df-shell-accent) 32%, transparent);
+  --df-card-halo: color-mix(in srgb, var(--df-shell-accent) 12%, transparent);
 }
 @media (prefers-reduced-motion: no-preference) {
   :root[data-fish-pace]:not(.df-off-glass,.df-off-focusring,.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused])

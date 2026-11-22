@@ -219,24 +219,44 @@ export const DF_SCENE_ART_CSS = `
    backdrop to sample. A narrower conversation crops a different part of it. */
 html[data-df-window-scene] body {
   isolation: isolate;
-  --df-reading-paper: var(--dsw-alias-bg-base, #f4f6fa);
-  --df-reading-center: 94%;
-  --df-reading-edge: 84%;
+  --df-reading-paper: #f7f6ef;
+  --df-reading-strength: 95%;
+  --df-reading-edge: 36%;
+  --df-paint-grade: saturate(.69);
+  --df-day-haze: color-mix(in srgb, var(--df-scene-glow, #9cbfff) 12%, #d6e6e5);
+  --df-window-light: linear-gradient(168deg, rgb(250 248 239 / .97) 7%,
+    color-mix(in srgb, var(--df-day-haze) 88%, transparent) 39%,
+    color-mix(in srgb, var(--df-day-haze) 69%, transparent) 58%,
+    rgb(156 192 201 / .28) 82%, rgb(130 169 186 / .07));
 }
 html[data-df-window-scene] body[data-ds-dark-theme] {
-  --df-reading-paper: var(--dsw-alias-bg-base, #191d28);
-  --df-reading-center: 90%;
-  --df-reading-edge: 77%;
+  --df-reading-paper: #13202c;
+  --df-reading-strength: 96%;
+  --df-reading-edge: 58%;
+  --df-paint-grade: saturate(.7);
+  --df-window-light: linear-gradient(160deg, rgb(15 28 39 / .89) 4%,
+    rgb(16 31 44 / .78) 44%, rgb(14 27 38 / .49) 70%, rgb(12 25 37 / .31) 100%);
+}
+/* Keep the light common to the outgoing and incoming paintings during a fade.
+   It sits below the chrome, so the four glass edges sample the same landscape. */
+html[data-df-window-scene] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--df-window-light);
 }
 .df-window-painting, .df-window-transition {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: -2;
   display: block;
   width: 100%;
   height: 100%;
   max-width: none;
   object-fit: cover;
+  filter: var(--df-paint-grade);
   pointer-events: none;
   user-select: none;
 }
@@ -248,9 +268,21 @@ html[data-df-window-scene] :is(div:has(> [data-rightbar-col]), div:has(> div > [
    wrappers and distinguishes the reading surface from the welcome artwork. */
 html[data-df-window-scene] [data-conversation-content]:is([data-content-phase="active"], [data-content-phase="settling"]) {
   isolation: isolate;
-  background: radial-gradient(ellipse at 50% 42%,
-    color-mix(in srgb, var(--df-reading-paper) var(--df-reading-center), transparent) 15%,
-    color-mix(in srgb, var(--df-reading-paper) var(--df-reading-edge), transparent) 97%);
+  /* The column stays calm for long conversations. Only the spare width of a
+     wide pane exposes the painting; split and narrow panes get solid margins. */
+  --df-reading-gutter: clamp(0px, calc(50% - 22rem), 18%);
+  --df-column: color-mix(in srgb, var(--df-reading-paper) var(--df-reading-strength), transparent);
+  --df-margin: color-mix(in srgb, var(--df-reading-paper) var(--df-reading-edge), transparent);
+  background: linear-gradient(90deg, var(--df-margin), var(--df-column) var(--df-reading-gutter),
+    var(--df-column) calc(100% - var(--df-reading-gutter)), var(--df-margin));
+}
+/* Keep a first-word gesture at the edges of the page. In the margins it has
+   more room; inside the text column even the bright canyon trace stays faint. */
+html[data-df-window-scene] .fish-backdrop[data-home="false"] > svg {
+  mask-image: linear-gradient(90deg, #0008, #00000014 13%, #00000008 24% 76%, #00000014 87%, #0008);
+}
+.fish-backdrop[data-home="false"] [data-df-sweep] {
+  vector-effect: non-scaling-stroke;
 }
 .fish-backdrop {
   --df-weather-time: 29s;
@@ -258,7 +290,8 @@ html[data-df-window-scene] [data-conversation-content]:is([data-content-phase="a
 }
 @media (forced-colors: active), (prefers-contrast: more) {
   .df-window-painting, .df-window-transition, .fish-backdrop { display: none; }
-  html[data-df-window-scene] [data-conversation-content][data-content-phase] { background: var(--df-reading-paper); }
+  html[data-df-window-scene] body::before { content: none; }
+  html[data-df-window-scene] [data-conversation-content][data-content-phase] { background: var(--dsw-alias-bg-base, Canvas); }
 }
 html:is(.df-off-fishmotion, [data-fish-pace="still"]) .df-window-transition { display: none; }
 @media (prefers-reduced-motion: reduce) { .df-window-transition { display: none; } }

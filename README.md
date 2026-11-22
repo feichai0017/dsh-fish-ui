@@ -8,7 +8,7 @@ Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fi
 
 ## Launch and welcome
 
-When Harness opens to a blank conversation, the original 104 × 73 whale-girl portrait comes into focus against the selected painting. Light follows along the glass edges of the real window, then settles. The portrait stays above the composer, with the dotted DeepSeek Harness wordmark alongside it on wider panels. Click, type or scroll at any time to finish the three-second opening. Restoring a conversation opens directly to its transcript.
+When Harness opens to a blank conversation, the original 104 × 73 whale-girl portrait comes into focus against the selected painting. Light follows along the glass edges of the window, then settles. The portrait sits centered above the composer, with space between the fading hem and the workspace controls. Click, type or scroll at any time to finish the three-second opening. Restoring a conversation opens directly to its transcript.
 
 Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it in the scene gallery. Still mode, reduced motion, increased contrast and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
 

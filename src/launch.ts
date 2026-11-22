@@ -57,23 +57,15 @@ export function playFishLaunch(holder: HTMLElement, preview = false) {
 }
 
 export const DF_LAUNCH_CSS = `
-/* Quiet the painting directly behind the original halftone. Its rim follows the
-   measured artwork when the composer or either side of the window moves. */
+/* A broad wash follows the light on the water. The portrait has its own
+   contrast; only the brief reflection needs its precise coordinates. */
 .dwe-water {
-  --df-field-ink: #203f68; --df-portrait-paper: #f5f7fc; --df-portrait-wash: 93%;
+  --df-field-ink: #294c61; --df-water-light: rgb(255 253 245 / .28);
   --df-portrait-x: 50%; --df-portrait-y: 32%; --df-portrait-w: 54vw; --df-portrait-h: 36vh;
   position: absolute; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
-  background:
-    radial-gradient(ellipse calc(var(--df-portrait-w) * 1.02) calc(var(--df-portrait-h) * 1.06)
-      at var(--df-portrait-x) var(--df-portrait-y),
-      color-mix(in srgb, var(--df-portrait-paper) var(--df-portrait-wash), transparent) 30%,
-      color-mix(in srgb, var(--df-portrait-paper) 75%, transparent) 53%,
-      color-mix(in srgb, var(--df-portrait-paper) 25%, transparent) 78%, transparent),
-    radial-gradient(ellipse max(1px, var(--df-word-w, 0px)) max(1px, var(--df-word-h, 0px))
-      at var(--df-word-x, 0px) var(--df-word-y, 0px),
-      color-mix(in srgb, var(--df-portrait-paper) 69%, transparent) 20%, transparent 95%);
+  background: linear-gradient(160deg, var(--df-water-light), transparent 68%);
 }
-body[data-ds-dark-theme] .dwe-water { --df-field-ink: #c4e6ff; --df-portrait-paper: #0b1732; --df-portrait-wash: 91%; }
+body[data-ds-dark-theme] .dwe-water { --df-field-ink: #bddbe3; --df-water-light: rgb(8 20 37 / .33); }
 .dwe-water > .df-portrait-light {
   position: absolute; left: var(--df-portrait-x); top: var(--df-portrait-y);
   width: calc(var(--df-portrait-w) * 1.6); height: calc(var(--df-portrait-h) * 1.7);
@@ -83,11 +75,11 @@ body[data-ds-dark-theme] .dwe-water { --df-field-ink: #c4e6ff; --df-portrait-pap
 .dwe-water::before, .dwe-water::after { content: ''; position: absolute; inset: 0; }
 :root:not(.df-off-field) .dwe-water::before {
   background-image: radial-gradient(circle, var(--df-field-ink) .62px, transparent .95px);
-  background-size: 7px 7px; opacity: .17;
-  mask-image: linear-gradient(150deg, #000 0%, transparent 53%, #000 100%);
+  background-size: 8px 8px; opacity: .11;
+  mask-image: linear-gradient(156deg, #000, transparent 22% 79%, #000);
 }
 :root:not(.df-off-wave) .dwe-water::after {
-  inset: 65% -8% -5%; opacity: .13;
+  inset: 76% -8% -5%; opacity: .085;
   background: repeating-radial-gradient(ellipse 90% 68% at 64% 125%, transparent 0 12px, var(--df-field-ink) 13px, transparent 14px 26px);
   mask-image: linear-gradient(transparent, #000 88%);
 }
@@ -102,8 +94,8 @@ body[data-ds-dark-theme] .dwe-water { --df-field-ink: #c4e6ff; --df-portrait-pap
   }
   @keyframes df-portrait-rise-light {
     0%, 100% { opacity: 0; }
-    20% { opacity: .23; }
-    52% { opacity: .48; }
+    20% { opacity: .12; }
+    52% { opacity: .32; }
   }
   @keyframes df-welcome-tide { to { transform: translate(2%, -4%) scale(1.04); } }
 }

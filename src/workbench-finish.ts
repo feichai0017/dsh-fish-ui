@@ -76,16 +76,15 @@ export const workbenchFinishCss = `
     --df-wb-ink: color-mix(in srgb, var(--df-shell-accent) 36%, var(--df-shell-ink));
     --df-wb-hairline: color-mix(in srgb, var(--df-shell-line) 58%, transparent);
     --df-wb-rim: inset 0 1px 0 var(--df-shell-highlight), inset 0 0 0 1px var(--df-wb-hairline);
-    --df-wb-selection: color-mix(in srgb, var(--df-shell-accent) 13%, var(--df-shell-raised));
+    --df-wb-selection: color-mix(in srgb, var(--df-shell-accent) 9%, var(--df-shell-surface));
   }
 
   ${glass} ${selection} {
     color: var(--df-shell-ink);
     background:
       linear-gradient(to bottom, transparent, var(--df-wb-light) 24% 76%, transparent) 2px center / 2px 78% no-repeat,
-      linear-gradient(112deg, color-mix(in srgb, var(--df-wb-light) 12%, transparent), transparent 64%),
       var(--df-wb-selection);
-    box-shadow: var(--df-wb-rim);
+    box-shadow: none;
   }
   ${glass} ${activeTab} {
     color: var(--df-wb-ink);
@@ -137,14 +136,15 @@ export const workbenchFinishCss = `
   }
   ${glass} ${guideCard} {
     color: var(--df-shell-ink);
-    border-color: var(--df-wb-hairline);
-    background: var(--df-shell-film), var(--df-shell-card-fill);
-    box-shadow: inset 0 1px 0 var(--df-shell-highlight), 0 3px 8px -6px var(--df-shell-shadow);
+    border-color: transparent;
+    background: linear-gradient(var(--df-wb-hairline), var(--df-wb-hairline))
+      right 14px bottom / calc(100% - 68px) 1px no-repeat;
+    box-shadow: none;
   }
   ${glass} ${guideCard} > span:first-child {
     border-radius: 6px;
-    background-color: color-mix(in srgb, var(--df-shell-accent) 9%, transparent);
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--df-shell-accent) 9%, transparent);
+    background-color: color-mix(in srgb, var(--df-shell-raised) 52%, transparent);
+    box-shadow: none;
   }
 
   /* One sheet per section instead of a stack of glass filters. Neither the
@@ -172,8 +172,8 @@ export const workbenchFinishCss = `
 
 @media (hover: hover) and (pointer: fine) and (forced-colors: none) {
   ${glass} ${guideCard}:hover {
-    border-color: var(--df-wb-light);
-    background: var(--df-shell-film), var(--df-wb-selection);
+    border-color: var(--df-wb-hairline);
+    background: color-mix(in srgb, var(--df-wb-selection) 76%, transparent);
   }
   ${glass} ${catalogRow}:hover {
     background-color: color-mix(in srgb, var(--df-shell-accent) 11%, var(--df-shell-raised));
@@ -192,8 +192,8 @@ export const workbenchFinishCss = `
   ${moving}:not(.df-off-glass) ${guideCard} { transition: border-color 150ms ease, background-color 150ms ease; }
 }
 @keyframes df-workbench-select {
-  from { background-size: 2px 12%, auto, auto; }
-  to { background-size: 2px 78%, auto, auto; }
+  from { background-size: 2px 12%; }
+  to { background-size: 2px 78%; }
 }
 @keyframes df-workbench-tab {
   from { background-size: 12% 2px, auto; }
