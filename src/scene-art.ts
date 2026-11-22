@@ -219,9 +219,9 @@ export const DF_SCENE_ART_CSS = `
    backdrop to sample. A narrower conversation crops a different part of it. */
 html[data-df-window-scene] body {
   isolation: isolate;
-  --df-reading-paper: #f7f6ef;
-  --df-reading-strength: 95%;
-  --df-reading-edge: 36%;
+  --df-reading-paper: #f7f9f9;
+  --df-reading-strength: 97%;
+  --df-reading-edge: 80%;
   --df-paint-grade: saturate(.69);
   --df-day-haze: color-mix(in srgb, var(--df-scene-glow, #9cbfff) 12%, #d6e6e5);
   --df-window-light: linear-gradient(168deg, rgb(250 248 239 / .97) 7%,
@@ -275,6 +275,17 @@ html[data-df-window-scene] [data-conversation-content]:is([data-content-phase="a
   --df-margin: color-mix(in srgb, var(--df-reading-paper) var(--df-reading-edge), transparent);
   background: linear-gradient(90deg, var(--df-margin), var(--df-column) var(--df-reading-gutter),
     var(--df-column) calc(100% - var(--df-reading-gutter)), var(--df-margin));
+}
+/* Harness marks finalized Markdown for text selection. Its live response uses
+   the same Markdown component before that attribute is available. */
+@media (prefers-contrast: no-preference) and (forced-colors: none) {
+  html[data-df-window-scene]:not(.df-off-reading) body:not([data-ds-dark-theme])
+    [data-chat-flow-kind="assistant-step"] :is([data-text-interaction-source], [class*="_markdown_"]) table {
+    --df-table-rule: rgb(46 66 80 / .11);
+    border-color: var(--df-table-rule);
+    & :is(thead, tbody, tfoot, tr, td) { border-color: var(--df-table-rule); }
+    & th { border-color: rgb(46 66 80 / .14); }
+  }
 }
 /* Keep a first-word gesture at the edges of the page. In the margins it has
    more room; inside the text column even the bright canyon trace stays faint. */

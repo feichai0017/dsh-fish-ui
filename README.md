@@ -10,6 +10,8 @@ Open **Deep Fish UI** in the sidebar footer or **Settings → Plugins → dsh-fi
 
 When Harness opens to a blank conversation, the original 104 × 73 whale-girl portrait comes into focus against the selected painting. Light follows along the glass edges of the window, then settles. The portrait sits centered above the composer, with space between the fading hem and the workspace controls. Click, type or scroll at any time to finish the three-second opening. Restoring a conversation opens directly to its transcript.
 
+In daylight, a band of light reveals the portrait in two shades of blue ink. Two crests trace outward along the hem and dissolve as the eyes, hair and bow come into focus. Still mode shows the finished print immediately. Daytime conversations use a neutral paper colour with fine table rules.
+
 Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it in the scene gallery. Still mode, reduced motion, increased contrast and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
 
 On the desktop welcome page, open the workspace name above the composer. Choose **Add workspace…** to open the system folder chooser, or select an already listed workspace. Harness adds the folder and selects it. Deep Fish UI supplies the desktop chooser when the host's workspace menu is missing its folder action.

@@ -1,4 +1,5 @@
 import { portraitColumns, portraitGrid } from './whale-girl-dots'
+import { paintDaylightWake } from './daylight-wake'
 
 const portraitRows = portraitGrid.length
 const levels = 16
@@ -74,19 +75,121 @@ function dotRadius(radius: number, weight: number) {
   return radius * (.44 + .76 * Math.sqrt(weight))
 }
 
-function portraitInk(ctx: CanvasRenderingContext2D, pitch: number, dark: boolean) {
+function nightInk(ctx: CanvasRenderingContext2D, pitch: number) {
   const x = pitch * 54, y = pitch * 33
   const ink = ctx.createRadialGradient(x, y, pitch * 7, x, y, pitch * 57)
-  ink.addColorStop(0, dark ? '#f2f5f3' : '#263851')
-  ink.addColorStop(.43, dark ? '#c7dbeb' : '#314c70')
-  ink.addColorStop(.75, dark ? '#98b8d3' : '#476c90')
-  ink.addColorStop(1, dark ? '#7694b8' : '#65839e')
+  ink.addColorStop(0, '#f2f5f3')
+  ink.addColorStop(.43, '#c7dbeb')
+  ink.addColorStop(.75, '#98b8d3')
+  ink.addColorStop(1, '#7694b8')
   return ink
 }
 
+type RGB = readonly [number, number, number]
+const clamp = (value: number) => Math.max(0, Math.min(1, value))
+
+function mixInk(a: RGB, b: RGB, t: number): RGB {
+  return [Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t),
+    Math.round(a[2] + (b[2] - a[2]) * t)]
+}
+
+// A translucent impression of the original grid gives the hair its broad
+// shape. A second pass in the same inks resolves the eyes, collar and fringe.
+function makeDaylightPrint(dots: Dot[]) {
+  const underprint = document.createElement('canvas')
+  underprint.width = portraitColumns
+  underprint.height = portraitRows
+  const brush = underprint.getContext('2d')
+  const pixels = brush?.createImageData(portraitColumns, portraitRows)
+  const marks = dots.map(dot => {
+    const x = dot.x - .5, y = dot.y - .5, tone = dot.tone
+    const face = Math.max(0, 1 - (((x - 55) / 19) ** 2 + ((y - 35) / 12) ** 2))
+    const shoulder = clamp((y - 48) / 15) * clamp((Math.abs(x - 55) - 8) / 20)
+    const ribbon = Math.max(0, 1 - ((x - 55) / 13) ** 2) * clamp((y - 50) / 4) * clamp((65 - y) / 6)
+    const teal = clamp(clamp((x - 52) / 33) * .65 + clamp((21 - y) / 16) * .22)
+    let color = mixInk([24, 66, 110], [20, 91, 120], teal)
+    color = mixInk(color, [66, 105, 128], shoulder * .44)
+    color = mixInk(color, [14, 34, 72], Math.max(face * .98, ribbon * .64))
+    if (pixels) {
+      const i = (y * portraitColumns + x) * 4
+      pixels.data.set(color, i)
+      pixels.data[i + 3] = Math.round(255 * .52 * tone ** .81)
+    }
+    return { x: dot.x, y: dot.y, radius: .125 + .376 * tone ** .78,
+      fill: 'rgba(' + color.join(',') + ',' + (.36 + .64 * Math.sqrt(tone)) + ')' }
+  })
+  if (pixels) brush?.putImageData(pixels, 0, 0)
+  return { underprint, marks }
+}
+let dayPrint: ReturnType<typeof makeDaylightPrint> | undefined
+
+function printDaylight(ctx: CanvasRenderingContext2D, dots: Dot[], pitch: number) {
+  dayPrint ??= makeDaylightPrint(dots)
+  ctx.drawImage(dayPrint.underprint, 0, 0, pitch * portraitColumns, pitch * portraitRows)
+  for (const mark of dayPrint.marks) {
+    ctx.fillStyle = mark.fill
+    ctx.beginPath()
+    ctx.arc(mark.x * pitch, mark.y * pitch, mark.radius * pitch, 0, tau)
+    ctx.fill()
+  }
+}
+
 function smooth(v: number) {
-  const t = Math.max(0, Math.min(1, v))
+  const t = clamp(v)
   return t * t * (3 - 2 * t)
+}
+
+const waveBend = (x: number) => .065 * Math.sin(tau * x - .8) - .07 * (x - .5)
+let waveMask: HTMLCanvasElement | undefined
+
+// Only the soft reveal mask is resampled. The finished portrait stays on its
+// physical pixel grid. The sparse crest particles use the same wave equation.
+function makeWaveMask() {
+  const mask = document.createElement('canvas')
+  mask.width = 150
+  mask.height = 300
+  const brush = mask.getContext('2d')
+  if (!brush) return mask
+  const pixels = brush.createImageData(mask.width, mask.height)
+  for (let x = 0; x < mask.width; x++) {
+    const bend = waveBend((x + .5) / mask.width)
+    for (let y = 0; y < mask.height; y++) {
+      const depth = (y + .5) / mask.height * 2.5 - .16 - bend
+      pixels.data[(y * mask.width + x) * 4 + 3] = Math.round(255 * smooth(depth / .19))
+    }
+  }
+  brush.putImageData(pixels, 0, 0)
+  return mask
+}
+
+function revealDaylight(ctx: CanvasRenderingContext2D, highlights: Dot[], x: number, y: number,
+    pitch: number, progress: number) {
+  const width = pitch * portraitColumns, height = pitch * portraitRows
+  const front = 1.14 - 1.53 * progress
+  waveMask ??= makeWaveMask()
+  ctx.globalCompositeOperation = 'destination-in'
+  ctx.drawImage(waveMask, x, y + (front - .16) * height, width, height * 2.5)
+  ctx.globalCompositeOperation = 'source-over'
+
+  const sea = new Path2D(), pearl = new Path2D()
+  for (const dot of highlights) {
+    const bend = waveBend(dot.x / portraitColumns)
+    const across = (dot.y / portraitRows - front - bend) / .24
+    if (across <= -.34 || across >= 1) continue
+    const settle = smooth(across + .22)
+    const hem = 1 - smooth((dot.y / portraitRows - .81) / .19)
+    const radius = (.20 + .23 * dot.tone) * pitch * Math.sin(Math.PI * (across + .34) / 1.34) * hem
+    const drift = (1 - settle) * pitch
+    const cx = x + dot.x * pitch + drift * 2.8 * Math.sin(dot.y * .18 + dot.x * .07)
+    const cy = y + dot.y * pitch + drift * (3.6 + Math.cos(dot.x * .16))
+    const path = across < .18 ? sea : pearl
+    path.moveTo(cx + radius, cy)
+    path.arc(cx, cy, radius, 0, tau)
+  }
+  ctx.fillStyle = '#369cae'
+  ctx.fill(sea)
+  ctx.fillStyle = '#d2f7f4'
+  ctx.fill(pearl)
 }
 
 export const whalePaintEvent = 'df-whale-paint'
@@ -99,6 +202,7 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   const water = holder.querySelector<HTMLElement>('.dwe-water')
   const content = canvas.closest<HTMLElement>('[data-conversation-content]')
   const media = matchMedia('(prefers-reduced-motion: reduce), (forced-colors: active), (prefers-contrast: more)')
+  const reducedTransparency = matchMedia('(prefers-reduced-transparency: reduce)')
   const forcedColors = matchMedia('(forced-colors: active)')
   const contrast = matchMedia('(prefers-contrast: more)')
   const events = new AbortController()
@@ -111,7 +215,8 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   let w = 0, h = 0, dpr = 1, pitch = 0, portraitRadius = 0
   let plateX = 0, plateY = 0
   let portrait = portraits.light
-  let lightInk = '#9cbfff'
+  let daylight = true
+  let lightInk: string | CanvasGradient = '#9cbfff'
   let lastStart: string | undefined
   let sweepAt = performance.now() + 7000
 
@@ -146,13 +251,18 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     // The controls and the figure each occupy their own space. The fractional
     // inset also works when resizing a split pane or showing the settings preview.
     const room = Math.max(0, Math.min(h, floor))
-    pitch = Math.min(preview ? 9 : 5.65,
-      limit * (preview ? .94 : .76) / portraitColumns, room * (preview ? .95 : .79) / portraitRows)
+    const dark = document.body.hasAttribute('data-ds-dark-theme')
+    const mono = forcedColors.matches || contrast.matches
+    daylight = !dark && !mono
+    pitch = daylight && !preview
+      ? Math.min(limit * .85 / portraitColumns, room * .87 / portraitRows)
+      : Math.min(preview ? 9 : 5.65, limit * (preview ? .94 : .76) / portraitColumns,
+        room * (preview ? .95 : .79) / portraitRows)
     portraitRadius = pitch * .336
     const plateW = portraitColumns * pitch
     const plateH = portraitRows * pitch
     const spare = room - plateH
-    const top = preview ? spare / 2 : spare - Math.min(58, spare * .43)
+    const top = preview ? spare / 2 : daylight ? spare * .54 : spare - Math.min(58, spare * .43)
     plateX = Math.round(Math.max(0, Math.min(w - plateW, center - plateW / 2)) * dpr) / dpr
     plateY = Math.round(top * dpr) / dpr
     if (water) {
@@ -165,21 +275,31 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     plate.height = Math.ceil(plateH * dpr)
     if (!plate.width || !plate.height) return schedule()
     printer.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const dark = document.body.hasAttribute('data-ds-dark-theme')
     portrait = dark ? portraits.dark : portraits.light
-    const mono = forcedColors.matches || contrast.matches
-    const ink = forcedColors.matches ? 'CanvasText' : contrast.matches
-      ? (dark ? '#eff6ff' : '#182c42') : portraitInk(printer, pitch, dark)
     const style = getComputedStyle(canvas)
     const scene = style.getPropertyValue('--df-scene-glow').trim() || '#9cbfff'
     lightInk = 'color-mix(in srgb, ' + scene + ' 45%, ' + (dark ? '#e4f4fb' : '#365b83') + ')'
-    printDots(printer, portrait.dots, pitch, portraitRadius, ink, mono)
+    if (daylight) {
+      printDaylight(printer, portrait.dots, pitch)
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      const gel = ctx.createLinearGradient(plateX, plateY, plateX + plateW, plateY + plateH)
+      gel.addColorStop(0, '#8bd7e4')
+      gel.addColorStop(.46, '#b9f4ec')
+      gel.addColorStop(.72, '#58afce')
+      gel.addColorStop(1, lightInk)
+      lightInk = gel
+    } else {
+      const ink = forcedColors.matches ? 'CanvasText' : contrast.matches
+        ? (dark ? '#eff6ff' : '#182c42') : nightInk(printer, pitch)
+      printDots(printer, portrait.dots, pitch, portraitRadius, ink, mono)
+    }
     if (!mono) {
       // The original plate ends in a straight horizontal crop across the apron.
       // Feather the last few rows into the painting, below the collar and bow.
-      const hem = printer.createLinearGradient(0, plateH * .79, 0, plateH)
+      const hem = printer.createLinearGradient(0, plateH * (daylight ? .81 : .79), 0, plateH)
       hem.addColorStop(0, '#000')
-      hem.addColorStop(.4, 'rgba(0,0,0,.84)')
+      if (daylight) hem.addColorStop(.5, 'rgba(0,0,0,.82)')
+      else hem.addColorStop(.4, 'rgba(0,0,0,.84)')
       hem.addColorStop(1, 'transparent')
       printer.globalCompositeOperation = 'destination-in'
       printer.fillStyle = hem
@@ -196,7 +316,8 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     ctx.clearRect(0, 0, w, h)
     const start = holder.dataset.dfWhaleStart
     if (!plate.width || !plate.height || (start === undefined && root.hasAttribute('data-df-await-arrival') && !preview)) return
-    const moving = !media.matches && !root.matches('.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]')
+    const moving = !media.matches && !(daylight && reducedTransparency.matches)
+      && !root.matches('.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]')
     const flow = root.dataset.fishPace === 'flow'
     const quiet = flow ? 5900 : 10200
     const sweepMs = flow ? 1300 : 1740
@@ -214,7 +335,9 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     ctx.drawImage(plate, Math.round(plateX * dpr), Math.round((plateY + lift) * dpr))
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.globalAlpha = 1
-    if (progress < 1) {
+    if (progress < 1 && daylight) {
+      revealDaylight(ctx, portrait.highlights, plateX, plateY + lift, pitch, progress)
+    } else if (progress < 1) {
       // Reveal the existing ink top to bottom, without moving individual
       // dots off their grid or quantising their per-cell alpha every frame.
       const front = plateY + lift + height * (1.68 * progress - .02)
@@ -227,6 +350,9 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
       ctx.globalCompositeOperation = 'source-over'
     }
     if (!moving) return
+    const wakeAge = now - Number(start)
+    const wakeActive = daylight && start !== undefined && wakeAge < 2850 && !root.classList.contains('df-off-wave')
+    if (wakeActive) paintDaylightWake(ctx, plateX, plateY, plate.width / dpr, height, wakeAge)
     const cycle = quiet + sweepMs
     const age = now - sweepAt
     const phase = age < 0 ? age : age % cycle
@@ -243,12 +369,12 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
         path.moveTo(x + radius, y)
         path.arc(x, y, radius, 0, tau)
       }
-      ctx.globalAlpha = (flow ? .34 : .24) * progress
+      ctx.globalAlpha = (daylight ? .78 : flow ? .34 : .24) * progress
       ctx.fillStyle = lightInk
       ctx.fill(path)
       ctx.globalAlpha = 1
     }
-    if (progress < 1 || (phase >= 0 && phase < sweepMs)) schedule()
+    if (progress < 1 || wakeActive || (phase >= 0 && phase < sweepMs)) schedule()
     else wake = window.setTimeout(schedule, phase < 0 ? -phase : cycle - phase)
   }
 
@@ -266,6 +392,7 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   motion.observe(root, { attributes: true, attributeFilter: ['class', 'data-fish-pace', 'data-fish-paused'] })
   for (const event of ['visibilitychange', whalePaintEvent]) document.addEventListener(event, schedule, { signal: events.signal })
   media.addEventListener('change', schedule, { signal: events.signal })
+  reducedTransparency.addEventListener('change', schedule, { signal: events.signal })
   contrast.addEventListener('change', measure, { signal: events.signal })
   forcedColors.addEventListener('change', measure, { signal: events.signal })
   let ripple: Animation | undefined
