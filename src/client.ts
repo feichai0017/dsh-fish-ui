@@ -1,4 +1,4 @@
-import { playFishLaunch, staticArrivalMedia, DF_LAUNCH_CSS } from './launch'
+import { attachBootSea, playFishLaunch, staticArrivalMedia, DF_LAUNCH_CSS } from './launch'
 import { mountWhale, whalePaintEvent } from './whale-welcome'
 import { studioFinishCss } from './studio-finish'
 import fishLogo from '../icon.svg'
@@ -6,12 +6,17 @@ import { dfCreateScenePlate, dfPlaySceneArrival, setWindowPainting, DF_SCENE_ART
 import { installModelStudio } from './model-studio'
 import { shellGlassCss } from './shell-glass'
 import { installDesktopWorkspacePicker } from './workspace-picker'
+import { readWorkspaceLooks, watchAppearanceWorkspace, workspaceAppearanceCss, type AppearanceWorkspace, type WorkspaceLook, type WorkspaceLooks } from './workspace-appearance'
+import { installStartPageWidth } from './start-page-width'
+import { attachShellMenuFocus } from './shell-menu-focus'
 import { installPendingApprovals } from './pending-approvals'
 import { workbenchFinishCss } from './workbench-finish'
+import { harborWelcomeControlsCss } from './harbor-welcome-controls'
 import { commandGlassCss } from './command-glass'
 import { createGlassControls, glassControlsCss } from './glass-controls'
 import { GLASS_KEYS, GLASS_RANGES, validGlassValue, type GlassKey, type GlassValues } from './glass-settings'
 import { dfInstallReplyMotion } from './reply-motion'
+import { mountReadingBookmark, readingBookmarkCss } from './reading-bookmark'
 
 /** The conversation frame supplies the welcome illustration beneath the native composer. */
 window.__ModuleLoader__.load({
@@ -54,7 +59,7 @@ window.__ModuleLoader__.load({
         icon: 'dunes',
       },
       rain: {
-        en: 'Neon Rain', zh: '霓虹夜雨', caption: ['Rain streaks past a lit skyline', '斜雨掠过楼顶的霓虹灯'],
+        en: 'Neon Rain', zh: '霓虹夜雨', caption: ['A wave rolls past the harbor lights', '一线潮光掠过港湾灯火'],
         colors: ['#111936', '#374274', '#80d6ec', '#f2a1d8'],
         icon: 'rain',
       },
@@ -1312,8 +1317,9 @@ body {
       .map(key => [key, 'df-off-' + key.toLowerCase()])))
     const dfSettingsListeners = new Set<() => void>()
     let dfSettings = DF_DEFAULT_SETTINGS
-    let dfSnapshot = { values: dfSettings, status: 'loading', writable: false, pending: false, error: '' }
-    type WriteSettings = (values: Partial<FishSettings>) => Promise<void>
+    let dfSnapshot = { values: dfSettings, global: dfSettings, looks: readWorkspaceLooks(undefined),
+      workspace: undefined as AppearanceWorkspace | undefined, status: 'loading', writable: false, pending: false, error: '' }
+    type WriteSettings = (values: Partial<FishSettings>, workspaceId?: string) => Promise<void>
     let dfWrite: WriteSettings | null = null
     let dfSettingsOwner: WriteSettings | null = null
     let dfTheme: FishThemeService | null = null
@@ -1377,7 +1383,7 @@ body {
     }
     const dfLegacy = dfReadLegacy()
     dfSettings = Object.freeze({ ...DF_DEFAULT_SETTINGS, ...dfLegacy })
-    dfSnapshot = { ...dfSnapshot, values: dfSettings }
+    dfSnapshot = { ...dfSnapshot, values: dfSettings, global: dfSettings }
     const dfSubscribeSettings = (listener: () => void) => {
       dfSettingsListeners.add(listener)
       return () => dfSettingsListeners.delete(listener)
@@ -1472,8 +1478,10 @@ body {
       dfSyncTheme()
     }
     function dfPublish(patch: Partial<typeof dfSnapshot>) {
-      dfSnapshot = Object.freeze({ ...dfSnapshot, ...patch })
-      dfSettings = dfSnapshot.values
+      const next = { ...dfSnapshot, ...patch }
+      const look = next.workspace && next.looks[next.workspace.workspaceId]
+      dfSettings = look ? Object.freeze({ ...next.global, ...look }) : next.global
+      dfSnapshot = Object.freeze({ ...next, values: dfSettings })
       dfApplySettings()
       dfSettingsListeners.forEach(listener => listener())
     }
@@ -1523,16 +1531,32 @@ body {
         if (migrating) return
         const values = Object.freeze(Object.fromEntries(Object.entries(DF_DEFAULT_SETTINGS)
           .map(([key, fallback]) => [key, validSetting(key, snapshot.value[key]) ? snapshot.value[key] : fallback]))) as FishSettings
-        dfPublish({ values, status: 'ready', writable: snapshot.writable })
+        dfPublish({ global: values, looks: readWorkspaceLooks(snapshot.value.workspaceLooks), status: 'ready', writable: snapshot.writable })
       }
-      const write: WriteSettings = async values => {
+      const write: WriteSettings = async (values, workspaceId) => {
         if (!active || dfSnapshot.pending || dfSnapshot.status !== 'ready' || !dfSnapshot.writable) return
         dfPublish({ pending: true, error: '' })
         try {
-          const ops = Object.entries(values).filter(([key, value]) => validSetting(key, value))
-            .map(([key, value]) => ({ op: 'set', path: [key], value }))
+          const snapshot = form.getSnapshot()
+          let ops: { op: string; path: string[]; value: unknown }[]
+          if (workspaceId !== undefined) {
+            const looks: WorkspaceLooks = readWorkspaceLooks(snapshot.value?.workspaceLooks)
+            const previous = looks[workspaceId]
+            if (values.scene || values.accentColor) {
+              looks[workspaceId] = {
+                scene: values.scene ?? previous?.scene ?? dfSnapshot.global.scene,
+                accentColor: values.accentColor ?? previous?.accentColor ?? dfSnapshot.global.accentColor,
+              }
+            } else {
+              delete looks[workspaceId]
+            }
+            ops = [{ op: 'set', path: ['workspaceLooks'], value: looks }]
+          } else {
+            ops = Object.entries(values).filter(([key, value]) => validSetting(key, value))
+              .map(([key, value]) => ({ op: 'set', path: [key], value }))
+          }
           ops.push({ op: 'set', path: ['settingsMigrated'], value: true })
-          const ok = await form.mutate(ops, form.getSnapshot().revision)
+          const ok = await form.mutate(ops, snapshot.revision)
           if (active) dfPublish({ error: ok ? '' : 'conflict' })
         } catch {
           if (active) dfPublish({ error: 'save' })
@@ -1574,7 +1598,11 @@ body {
       let frameToPlay: HTMLElement | undefined
       let settle: number | undefined
       let expiry: number | undefined
+      let stopSea: (() => void) | undefined
       let stopAutomatic: (() => void) | undefined
+      function startRestoreDeadline() {
+        if (expiry === undefined && !events.signal.aborted) expiry = window.setTimeout(finishWaiting, 4000)
+      }
       function finishWaiting() {
         events.abort()
         clearTimeout(expiry)
@@ -1585,6 +1613,7 @@ body {
       }
       if (!window.__dfSplashPlayed && !document.hidden && !staticLaunchMedia.matches && !navigator.userActivation?.hasBeenActive) {
         root.setAttribute('data-df-await-arrival', '')
+        stopSea = attachBootSea(startRestoreDeadline)
         visitLaunchFrame = (frame, welcome, ready) => {
           const content = frame.closest<HTMLElement>('[data-conversation-content]')
           if (!content || content.closest('[inert], [aria-hidden="true"], [data-sidebar-right-panel]') ||
@@ -1596,6 +1625,10 @@ body {
           if (!ready || frameToPlay === frame) return
           clearTimeout(settle)
           frameToPlay = frame
+          // The native loader and welcome use the same sea. Let the shore come
+          // into view while Harness is also checking which session to restore.
+          const seaReadyAt = performance.now() +
+            Number(getComputedStyle(document.body).getPropertyValue('--df-boot-sea-ms'))
           let quietSince: number | undefined
           const whenRestored = () => {
             if (!frame.isConnected || frame.dataset.dfWelcome !== 'true') return finishWaiting()
@@ -1609,6 +1642,11 @@ body {
                 return
               }
             }
+            const lead = seaReadyAt - performance.now()
+            if (lead > 0) {
+              settle = window.setTimeout(whenRestored, Math.ceil(lead))
+              return
+            }
             finishWaiting()
             stopAutomatic = playFishLaunch(frame)
           }
@@ -1618,10 +1656,10 @@ body {
         for (const event of ['pointerdown', 'keydown', 'wheel', 'beforeinput', 'visibilitychange']) {
           document.addEventListener(event, finishWaiting, options)
         }
-        expiry = window.setTimeout(finishWaiting, 4000)
+        if (!stopSea || !Number(getComputedStyle(document.body).getPropertyValue('--df-boot-sea-ms'))) startRestoreDeadline()
       }
       window.__dfSplashPlayed = true
-      return () => { finishWaiting(); stopAutomatic?.(); stopPreview?.(); stopPreview = undefined }
+      return () => { finishWaiting(); stopSea?.(); stopAutomatic?.(); stopPreview?.(); stopPreview = undefined }
     }
 
     class DfBoundary extends React.Component<{ children?: React.ReactNode; fallback?: React.ReactNode }> {
@@ -2024,6 +2062,10 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
 .fish-tabs button[aria-pressed="true"] { font-weight: 650; color: var(--df-accent); }
 .fish-tabs button[aria-pressed="true"]::after { position: absolute; content: ""; inset: auto 1px -1px; height: 2px; border-radius: 2px; background: currentColor; }
 .fish-scene-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.fish-look-scope { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.fish-look-scope label { display: inline-flex; align-items: center; gap: 8px; min-width: 0; color: var(--fish-muted); font-size: 12px; }
+.fish-look-scope select { max-width: min(52cqi, 280px); padding: 4px 6px; font: inherit; color: var(--fish-label);
+  background: var(--fish-panel); border: 1px solid var(--fish-edge); border-radius: 6px; }
 .fish-scene-card {
   position: relative; min-width: 0; display: flex; flex-direction: column; padding: 3px; overflow: hidden;
   border-radius: 10px; border: 1px solid var(--fish-edge); background: var(--fish-panel); cursor: pointer;
@@ -2194,20 +2236,20 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       }
     }
 
-    function FishScenePicker({ state, disabled, zh }: { state: FishSettings; disabled: boolean; zh: boolean }) {
+    function FishScenePicker({ selected, workspaceId, disabled, zh }: { selected: SceneId; workspaceId?: string; disabled: boolean; zh: boolean }) {
       const group = React.useId()
       return h('fieldset', { className: 'fish-scene-picker', disabled },
         h('legend', { className: 'fish-sr' }, zh ? '选择场景' : 'Choose a scene'),
         h('div', { className: 'fish-scene-grid' }, (Object.entries(SCENES) as [SceneId, FishScene][]).map(([id, scene]) =>
           h('label', { className: 'fish-scene-card', key: id },
-            h('input', { type: 'radio', className: 'fish-sr', name: group, value: id, checked: state.scene === id,
-              onChange: () => dfSetSetting('scene', id) }),
+            h('input', { type: 'radio', className: 'fish-sr', name: group, value: id, checked: selected === id,
+              onChange: () => dfWrite?.({ scene: id }, workspaceId) }),
             h('span', { className: 'fish-card-art' }, h(FishPlate, { scene: id }),
-              state.scene === id && h('span', { className: 'fish-picked' }, h(FishIcon, { name: 'check', size: 13 }))),
+              selected === id && h('span', { className: 'fish-picked' }, h(FishIcon, { name: 'check', size: 13 }))),
             h('span', { className: 'fish-card-label' }, h(FishIcon, { name: scene.icon, size: 16 }), zh ? scene.zh : scene.en)))))
     }
 
-    function FishAccentPicker({ value, disabled, zh }: { value: string; disabled: boolean; zh: boolean }) {
+    function FishAccentPicker({ value, workspaceId, disabled, zh }: { value: string; workspaceId?: string; disabled: boolean; zh: boolean }) {
       const input = React.useRef<HTMLInputElement>(null)
       const group = React.useId()
       const title = zh ? '强调色' : 'Accent color'
@@ -2215,10 +2257,10 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       React.useEffect(() => {
         const node = input.current
         if (!node) return
-        const commit = () => dfSetSetting('accentColor', node.value.toUpperCase())
+        const commit = () => dfWrite?.({ accentColor: node.value.toUpperCase() }, workspaceId)
         node.addEventListener('change', commit)
         return () => node.removeEventListener('change', commit)
-      }, [])
+      }, [workspaceId])
       React.useEffect(() => { if (input.current) input.current.value = value }, [value])
       return h('fieldset', { className: 'fish-accent-picker', disabled },
         h('legend', { className: 'fish-sr' }, title),
@@ -2228,7 +2270,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
             ACCENT_SWATCHES.map(([hex, cn, en]) => h('label', { key: hex, className: 'fish-ink-option',
               style: { '--fish-swatch': hex }, title: zh ? cn : en },
               h('input', { type: 'radio', className: 'fish-sr', name: group, value: hex, 'aria-label': zh ? cn : en,
-                checked: value.toUpperCase() === hex, onChange: () => dfSetSetting('accentColor', hex) }))),
+                checked: value.toUpperCase() === hex, onChange: () => dfWrite?.({ accentColor: hex }, workspaceId) }))),
             h('label', { className: 'fish-custom-color' }, zh ? '自选' : 'Custom',
               h('input', { type: 'color', ref: input, defaultValue: value, 'aria-label': zh ? '自选强调色' : 'Custom accent color' })))))
     }
@@ -2253,8 +2295,14 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
       const staticDisplay = React.useSyncExternalStore(onMotionPreference, readStaticLaunch, readStaticLaunch)
       const staticIntro = staticDisplay || state.sceneMotion === 'still' || !state.fishMotion || !state.hero
       const [tab, setTab] = React.useState('scenes')
+      const [lookScope, setLookScope] = React.useState<'global' | 'workspace' | undefined>(undefined)
+      const workspace = settings.workspace
+      const customLook = workspace && settings.looks[workspace.workspaceId]
+      const editWorkspace = workspace && (lookScope ? lookScope === 'workspace' : !!customLook)
+      const workspaceId = editWorkspace ? workspace.workspaceId : undefined
+      const editing: WorkspaceLook = (editWorkspace && customLook) || settings.global
       const glassEditor = React.useMemo(createGlassEditor, [])
-      const scene = SCENES[state.scene]
+      const scene = SCENES[editing.scene]
       const disabled = settings.status !== 'ready' || !settings.writable || settings.pending
       const update = (key: keyof FishSettings) => (value: boolean) => dfSetSetting(key, value)
       const reset = () => dfWrite?.(DF_DEFAULT_SETTINGS)
@@ -2314,7 +2362,7 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
         onClick: () => setTab(id) }, h(FishIcon, { name: icon, size: 16 }), label)
       return h('div', { className: 'df-set fish-studio' },
         h('div', { className: 'fish-cover', style: { backgroundColor: scene.colors[0] } },
-          h(FishPlate, { scene: state.scene }),
+          h(FishPlate, { scene: editing.scene }),
           h('div', { className: 'fish-cover-copy' },
             h('span', { className: 'fish-cover-kicker' }, zh ? scene.en : 'Selected scene'),
             h('h2', null, zh ? scene.zh : scene.en),
@@ -2326,9 +2374,18 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           tabButton('details', zh ? '界面细节' : 'Interface details', 'sliders')),
         status && h('p', { className: 'df-settings-status', role: settings.error ? 'alert' : 'status' }, status),
         tab === 'scenes' ? h('div', { className: 'fish-scenes' },
-          h(FishScenePicker, { state, disabled, zh }),
+          workspace && h('div', { className: 'fish-look-scope' },
+            h('label', null, zh ? '场景和强调色' : 'Scene and accent',
+              h('select', { value: editWorkspace ? 'workspace' : 'global', disabled, title: workspace.path,
+                onChange: (event: React.ChangeEvent<HTMLSelectElement>) => setLookScope(event.target.value as 'global' | 'workspace') },
+                h('option', { value: 'global' }, zh ? '全局默认' : 'Global default'),
+                h('option', { value: 'workspace' }, (zh ? '此工作区 · ' : 'Workspace · ') +
+                  (workspace.title === 'default-workspace' ? (zh ? '默认工作区' : 'Default workspace') : workspace.title)))),
+            editWorkspace && customLook && h('button', { type: 'button', className: 'df-set-reset', disabled,
+              onClick: () => dfWrite?.({}, workspaceId) }, zh ? '恢复全局外观' : 'Use global appearance')),
+          h(FishScenePicker, { selected: editing.scene, workspaceId, disabled, zh }),
           h('div', { className: 'fish-controls' },
-            h(FishAccentPicker, { value: state.accentColor, disabled, zh }),
+            h(FishAccentPicker, { key: workspaceId ?? 'global', value: editing.accentColor, workspaceId, disabled, zh }),
             item('aurora'),
             h(FishSegments, { name: 'sceneMotion', label: zh ? '背景动效' : 'Scene motion', icon: 'wave',
               value: state.sceneMotion, disabled: disabled || !state.aurora,
@@ -2608,10 +2665,15 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           windowPainting.setAttribute('aria-hidden', 'true')
           const visible = () => document.documentElement.toggleAttribute('data-fish-paused', document.hidden)
           document.addEventListener('visibilitychange', visible)
+          const lighting = new MutationObserver(() => {
+            if (dfSettings.aurora) setWindowPainting(windowPainting, dfSettings.scene)
+          })
+          lighting.observe(document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme'] })
           visible()
           dfApplySettings()
           return () => {
             dfMounted = false
+            lighting.disconnect()
             setWindowPainting(windowPainting, undefined)
             glassDrafts.clear()
             GLASS_KEYS.forEach(key => document.documentElement.style.removeProperty(GLASS_RANGES[key].css))
@@ -2645,8 +2707,8 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           const style = document.createElement('style')
           style.dataset.dshPlugin = 'dsh-fish-ui: fx'
           style.textContent = [
-            FISH_FX_CSS, FISH_STUDIO_CSS, DF_SCENE_ART_CSS, productIconCss(),
-            shellGlassCss, commandGlassCss, glassControlsCss, studioFinishCss, workbenchFinishCss, DF_LAUNCH_CSS,
+            FISH_FX_CSS, FISH_STUDIO_CSS, DF_SCENE_ART_CSS, productIconCss(), readingBookmarkCss,
+            shellGlassCss, workspaceAppearanceCss, commandGlassCss, glassControlsCss, studioFinishCss, workbenchFinishCss, DF_LAUNCH_CSS, harborWelcomeControlsCss,
           ].join('\n')
           document.head.append(style)
           return () => style.remove()
@@ -2665,10 +2727,13 @@ html[data-fish-icons="line"] .fish-icon-tone { display: none; }
           }, 'dsh-fish-ui: token layers')
         })
         installDesktopWorkspacePicker(ctx, React)
+        installStartPageWidth(ctx, React)
+        ctx.effect(attachShellMenuFocus, 'dsh-fish-ui: shell menu focus')
         installPendingApprovals(ctx, React)
         installModelStudio(ctx, React)
-        dfInstallReplyMotion(React, ctx, dfPlaySceneArrival)
+        dfInstallReplyMotion(React, ctx, dfPlaySceneArrival, mountReadingBookmark)
         ctx.inject(['workspaces', 'sessions'], scope => {
+          scope.effect(() => watchAppearanceWorkspace(scope, workspace => dfPublish({ workspace })), 'dsh-fish-ui: workspace appearance')
           scope.effect(() => {
             noSessionSelected = () => {
               const ws = scope.workspaces.list.getSnapshot()

@@ -12,6 +12,8 @@ When Harness opens to a blank conversation, the original 104 × 73 whale-girl po
 
 In daylight, a band of light reveals the portrait in two shades of blue ink. Two crests trace outward along the hem and dissolve as the eyes, hair and bow come into focus. Still mode shows the finished print immediately. Daytime conversations use a neutral paper colour with fine table rules.
 
+On the first send from the welcome page, a few dots leave the whale-girl’s shoulder and trace the rim of the composer. As soon as the first words arrive, the selected scene plays its reply animation. You can keep typing throughout the transition.
+
 Under **Scenes**, use **Launch animation** to control automatic playback and **Preview intro** to replay it in the scene gallery. Still mode, reduced motion, increased contrast and forced colors skip the opening. The scene button in the corner of the welcome page opens the gallery.
 
 On the desktop welcome page, open the workspace name above the composer. Choose **Add workspace…** to open the system folder chooser, or select an already listed workspace. Harness adds the folder and selects it. Deep Fish UI supplies the desktop chooser when the host's workspace menu is missing its folder action.
@@ -36,9 +38,15 @@ When Harness is waiting for tool approval, the corresponding conversation shows 
 
 Active sessions and tabs pick up the current scene's color. Tool steps, message bubbles and plugin groups have distinct reading surfaces. Changing scenes crossfades the full-window painting. Still mode and the system's reduced-motion setting skip these transitions.
 
+## Reading earlier messages
+
+Scroll up while a reply is arriving. A bookmark above the composer counts new replies below your reading position. Click the count to jump to a reply, then **Back to reading** to return to the passage you left. Each open conversation pane keeps its own place.
+
 ## Scenes
 
-The six original, AI-generated 1280 × 640 paintings ship in the plugin. Landscape references include [USGS seafloor relief](https://www.usgs.gov/media/images/shaded-relief-bathymetry-examples), [NASA lunar imagery](https://science.nasa.gov/moon/image-galleries/moonscapes/) and [Bian Shoumin’s lotus leaves at The Met](https://www.metmuseum.org/art/collection/search/49236).
+Each scene has two original, AI-generated paintings that follow the Harness light or dark theme. The window and gallery share the same artwork. Look for the same moon rim, auroral curtain, dune ridge or lotus across the two paintings. **Tidal Atlas** changes from pale sea glass to a deep-blue canyon, and **Neon Rain** follows the same harbor from sunlit surf to lantern reflections. Landscape references include [USGS seafloor relief](https://www.usgs.gov/media/images/shaded-relief-bathymetry-examples), [NASA lunar imagery](https://science.nasa.gov/moon/image-galleries/moonscapes/) and [Bian Shoumin’s lotus leaves at The Met](https://www.metmuseum.org/art/collection/search/49236).
+
+Under **Scenes → Scene and accent**, choose **Global default** or the current workspace. Pick a painting and accent for that workspace and Harness recalls them when you return. **Use global appearance** makes the workspace follow the profile again.
 
 | Scene | When the first text of a reply arrives |
 | --- | --- |
@@ -46,7 +54,7 @@ The six original, AI-generated 1280 × 640 paintings ship in the plugin. Landsca
 | Polar Silk | A seam of green light travels along the auroral curtain. |
 | Lunar Orbit | A small satellite crosses the bright edge of the moon. |
 | Amber Dunes | A warm glint follows the crest of a dune. |
-| Neon Rain | City lights shimmer once in the harbor reflection. |
+| Neon Rain | The quay lamps shimmer once in the water below them. |
 | Celadon Pond | A ripple expands through the still water beside the lotus. |
 
 Each arrival plays once per live turn. Opening history or loading older messages keeps the scene quiet. **Scene motion** offers Still, Calm and Flow. Still and the system’s reduced-motion setting suppress the arrivals. **Icon style** switches between outline and duotone for the plugin and common Harness actions. Appearance preferences are saved to the current profile.

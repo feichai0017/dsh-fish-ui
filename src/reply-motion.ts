@@ -1,4 +1,5 @@
 import type * as React from 'react'
+import { watchFirstSend, type FirstSendSession } from './first-send'
 
 type ReplyPhase = 'idle' | 'thinking' | 'streaming' | 'done'
 type Listener = () => void
@@ -24,7 +25,7 @@ interface ReplySource {
   getSnapshot(): ReplyWindow
   subscribe(listener: Listener): Listener
 }
-interface ReplyBinding { sessionId: string; eventSource: ReplySource }
+interface ReplyBinding { sessionId: string; eventSource: ReplySource; session?: FirstSendSession }
 interface ReplyScope {
   sessions: { binding(id: string): ReplyBinding | undefined }
   slots: {
@@ -64,7 +65,7 @@ function contentPhase(entry: ReplyEntry): ReplyPhase | undefined {
 
 // The feed labels live appends separately from reconnect baselines and older history pages.
 // A turn can contain multiple tool steps, model attempts, and a durable copy of streamed text.
-function observeReply(source: ReplySource, report: (phase: ReplyPhase) => void, arrive: Listener) {
+function observeReply(source: ReplySource, report: (phase: ReplyPhase) => void, arrive: Listener, textAdded: (turn: number) => void) {
   let turn: number | undefined
   let sawText = false
   let phase: ReplyPhase = 'idle'
@@ -84,7 +85,11 @@ function observeReply(source: ReplySource, report: (phase: ReplyPhase) => void, 
     const next = contentPhase(entry)
     if (next === undefined) return
     phase = next
-    if (next !== 'streaming' || sawText) return
+    if (next !== 'streaming') return
+    // A reader can leave the tail halfway through a response. Durable copies of
+    // streamed text don't announce it again after the reader scrolls.
+    if (live && (!sawText || data.chunk?.type === 'text-delta')) textAdded(turn)
+    if (sawText) return
     sawText = true
     if (live) arrive()
   }
@@ -128,7 +133,7 @@ function observeReply(source: ReplySource, report: (phase: ReplyPhase) => void, 
 
 interface ReplyTracker {
   source: ReplySource
-  views: Set<Listener>
+  views: Map<Listener, ((turn: number) => void) | undefined>
   stop: Listener
 }
 interface ReplyChannel {
@@ -166,20 +171,21 @@ export function dfSubscribeReplyPhase(sessionId: string | undefined, listener: L
   return () => { channel.listeners.delete(listener); releaseIfUnused(sessionId, channel) }
 }
 
-function attach(binding: ReplyBinding, arrive: Listener) {
+function attach(binding: ReplyBinding, arrive: Listener, textAdded?: (turn: number) => void) {
   const id = binding.sessionId
   const channel = channelFor(id)
   let tracker = channel.tracker
   if (!tracker || tracker.source !== binding.eventSource) {
     tracker?.stop()
-    const views = new Set<Listener>()
+    const views: ReplyTracker['views'] = new Map()
     tracker = {
       source: binding.eventSource, views,
-      stop: observeReply(binding.eventSource, phase => publish(channel, phase), () => views.forEach(play => play())),
+      stop: observeReply(binding.eventSource, phase => publish(channel, phase),
+        () => views.forEach((_text, play) => play()), turn => views.forEach(text => text?.(turn))),
     }
     channel.tracker = tracker
   }
-  tracker.views.add(arrive)
+  tracker.views.set(arrive, textAdded)
   return () => {
     tracker.views.delete(arrive)
     if (tracker.views.size || channel.tracker !== tracker) return
@@ -194,20 +200,26 @@ export function dfInstallReplyMotion(
   react: typeof React,
   ctx: { inject(services: string[], setup: (scope: ReplyScope) => void): void },
   onArrival: (backdrop: HTMLElement) => void,
+  mountBookmark?: (slot: HTMLElement) => { textAdded(turn: number): void; dispose(): void } | undefined,
 ) {
   const name = 'conversation.input.overlay'
   function ReplyMotion({ binding }: ReplyProps) {
     const ref = react.useRef<HTMLSpanElement>(null)
     react.useLayoutEffect(() => {
       if (!binding) return
-      return attach(binding, () => {
+      const pane = ref.current?.closest<HTMLElement>('[data-conversation-content]')
+      const firstSend = pane && binding.session ? watchFirstSend(pane, binding.session) : undefined
+      const bookmark = ref.current && mountBookmark?.(ref.current)
+      const stop = attach(binding, () => {
         if (document.hidden) return
+        firstSend?.arrive()
         const frame = ref.current?.closest('.dwe-frame')
         const backdrop = frame?.querySelector<HTMLElement>(':scope > .fish-backdrop')
         if (backdrop && backdrop.getClientRects().length) onArrival(backdrop)
-      })
+      }, bookmark?.textAdded)
+      return () => { stop(); firstSend?.dispose(); bookmark?.dispose() }
     }, [binding])
-    return react.createElement('span', { ref, hidden: true, 'aria-hidden': true })
+    return react.createElement('span', { ref, hidden: !mountBookmark })
   }
   ctx.inject(['sessions', 'slots'], scope => {
     scope.slots.inject(name, () => scope.slots.register({

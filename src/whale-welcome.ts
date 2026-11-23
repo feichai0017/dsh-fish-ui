@@ -4,8 +4,10 @@ import { paintDaylightWake } from './daylight-wake'
 const portraitRows = portraitGrid.length
 const levels = 16
 const tau = Math.PI * 2
+const daylightHemStart = .87
 type Dot = { x: number; y: number; tone: number }
-type Portrait = { dots: Dot[]; highlights: Dot[] }
+type Highlight = Dot & { crest: number }
+type Portrait = { dots: Dot[]; highlights: Highlight[] }
 
 // Use the original dark-theme paper cut: the unprinted interior of the face
 // and apron becomes light ink, and the dark hair is left open to the scene.
@@ -36,14 +38,14 @@ function readPortraits() {
       if (weight) {
         const dot = { x: x + .5, y: y + .5, tone: weight / 15 }
         light.dots.push(dot)
-        if (edge) light.highlights.push(dot)
+        if (edge) light.highlights.push({ ...dot, crest: crestPosition(dot.x, dot.y) })
       }
       if (x < firstColumn[y] || x > lastColumn[y] || y < firstRow[x] || y > lastRow[x]) continue
       const tone = 1 - weight / 15
       if (tone === 0) continue
       const dot = { x: x + .5, y: y + .5, tone }
       dark.dots.push(dot)
-      if (edge) dark.highlights.push(dot)
+      if (edge) dark.highlights.push({ ...dot, crest: crestPosition(dot.x, dot.y) })
     }
   }
   return { light, dark }
@@ -78,10 +80,10 @@ function dotRadius(radius: number, weight: number) {
 function nightInk(ctx: CanvasRenderingContext2D, pitch: number) {
   const x = pitch * 54, y = pitch * 33
   const ink = ctx.createRadialGradient(x, y, pitch * 7, x, y, pitch * 57)
-  ink.addColorStop(0, '#f2f5f3')
-  ink.addColorStop(.43, '#c7dbeb')
-  ink.addColorStop(.75, '#98b8d3')
-  ink.addColorStop(1, '#7694b8')
+  ink.addColorStop(0, '#f5f9ff')
+  ink.addColorStop(.43, '#c6e5ff')
+  ink.addColorStop(.75, '#94cedf')
+  ink.addColorStop(1, '#80a5db')
   return ink
 }
 
@@ -104,16 +106,22 @@ function makeDaylightPrint(dots: Dot[]) {
   const marks = dots.map(dot => {
     const x = dot.x - .5, y = dot.y - .5, tone = dot.tone
     const face = Math.max(0, 1 - (((x - 55) / 19) ** 2 + ((y - 35) / 12) ** 2))
-    const shoulder = clamp((y - 48) / 15) * clamp((Math.abs(x - 55) - 8) / 20)
     const ribbon = Math.max(0, 1 - ((x - 55) / 13) ** 2) * clamp((y - 50) / 4) * clamp((65 - y) / 6)
-    const teal = clamp(clamp((x - 52) / 33) * .65 + clamp((21 - y) / 16) * .22)
-    let color = mixInk([24, 66, 110], [20, 91, 120], teal)
-    color = mixInk(color, [66, 105, 128], shoulder * .44)
-    color = mixInk(color, [14, 34, 72], Math.max(face * .98, ribbon * .64))
+    // Two inks overlap in the hair. Only the right-facing edges catch the
+    // turquoise reflection, so the eyes and bow keep their dark key plate.
+    const wash = smooth((x - 44 + 4 * Math.sin(y / 10)) / 40)
+    const right = parseInt(portraitGrid[y][x + 1] || '0', 16) / 15
+    const facing = clamp((tone - right) * 1.8) * smooth((x - 48) / 24)
+    let color = mixInk([20, 49, 151], [7, 126, 155], wash)
+    color = mixInk(color, [33, 172, 181], facing * .83)
+    color = mixInk(color, [12, 29, 68], Math.max(face, ribbon * .83))
+    // Deepen the few cyan strands that cross the wave at the right shoulder.
+    const tip = 1 - ((x - 98) / 10) ** 2 - ((y - 65) / 8) ** 2
+    if (tip > 0) color = mixInk(color, [8, 55, 91], .58 * smooth(tip))
     if (pixels) {
       const i = (y * portraitColumns + x) * 4
       pixels.data.set(color, i)
-      pixels.data[i + 3] = Math.round(255 * .52 * tone ** .81)
+      pixels.data[i + 3] = Math.round(255 * .56 * tone ** .81)
     }
     return { x: dot.x, y: dot.y, radius: .125 + .376 * tone ** .78,
       fill: 'rgba(' + color.join(',') + ',' + (.36 + .64 * Math.sqrt(tone)) + ')' }
@@ -137,6 +145,72 @@ function printDaylight(ctx: CanvasRenderingContext2D, dots: Dot[], pitch: number
 function smooth(v: number) {
   const t = clamp(v)
   return t * t * (3 - 2 * t)
+}
+
+function daylightEdgeFade(row: number) {
+  return 1 - smooth((row / portraitRows - daylightHemStart) / (1 - daylightHemStart))
+}
+
+// The reflected crest climbs the outside of the coat, then crosses the hair.
+// A thin pearl edge and its blue wake pass over the same printed dots.
+function crestPosition(x: number, y: number) {
+  return .62 * x / portraitColumns + .32 * (1 - y / portraitRows)
+    + .058 * Math.sin(tau * (x / portraitColumns + .6 * y / portraitRows))
+}
+
+function paintReflection(ctx: CanvasRenderingContext2D, portrait: Portrait, x: number, y: number,
+    pitch: number, radius: number, front: number, ink: string | CanvasGradient, daylight: boolean, alpha: number) {
+  const blue = new Path2D(), pearl = new Path2D()
+  for (const dot of portrait.highlights) {
+    const distance = front - dot.crest
+    if (distance < -.045 || distance > .16) continue
+    const ridge = smooth(1 - Math.abs(distance) / .045)
+    const wake = smooth(1 - Math.abs(distance - .068) / .09)
+    const hem = daylight ? daylightEdgeFade(dot.y) : 1 - smooth((dot.y / portraitRows - .79) / .21)
+    const cx = x + dot.x * pitch, cy = y + dot.y * pitch
+    const r = dotRadius(radius, dot.tone) * hem
+    const body = r * Math.max(ridge, wake)
+    blue.moveTo(cx + body, cy)
+    blue.arc(cx, cy, body, 0, tau)
+    if (ridge > 0) {
+      const lip = r * .84 * ridge
+      pearl.moveTo(cx + lip, cy)
+      pearl.arc(cx, cy, lip, 0, tau)
+    }
+  }
+  ctx.globalAlpha = alpha * .86
+  ctx.fillStyle = ink
+  ctx.fill(blue)
+  ctx.globalAlpha = alpha * .91
+  ctx.fillStyle = daylight ? '#dcfbfd' : '#fff9e8'
+  ctx.fill(pearl)
+
+  // One specular glint on the metal fastener at grid (58, 5). Limit its
+  // size to the hair ornament and leave the surrounding halftone untouched.
+  const flare = smooth(1 - Math.abs(front - crestPosition(58.5, 5.5)) / .10)
+  if (flare > 0) {
+    ctx.save()
+    ctx.translate(x + 58.5 * pitch, y + 5.5 * pitch)
+    ctx.rotate(-.16)
+    const arm = pitch * 2.85 * flare
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, arm)
+    glow.addColorStop(0, 'rgba(241,255,255,.9)')
+    glow.addColorStop(.22, 'rgba(111,218,255,.57)')
+    glow.addColorStop(1, 'rgba(96,185,255,0)')
+    ctx.globalAlpha = alpha * flare
+    ctx.fillStyle = glow
+    ctx.fillRect(-arm, -arm, 2 * arm, 2 * arm)
+    ctx.fillStyle = '#f5ffff'
+    ctx.beginPath()
+    ctx.moveTo(0, -arm)
+    ctx.quadraticCurveTo(.06 * arm, -.10 * arm, .78 * arm, 0)
+    ctx.quadraticCurveTo(.06 * arm, .10 * arm, 0, arm)
+    ctx.quadraticCurveTo(-.06 * arm, .10 * arm, -.78 * arm, 0)
+    ctx.quadraticCurveTo(-.06 * arm, -.10 * arm, 0, -arm)
+    ctx.fill()
+    ctx.restore()
+  }
+  ctx.globalAlpha = 1
 }
 
 const waveBend = (x: number) => .065 * Math.sin(tau * x - .8) - .07 * (x - .5)
@@ -177,7 +251,7 @@ function revealDaylight(ctx: CanvasRenderingContext2D, highlights: Dot[], x: num
     const across = (dot.y / portraitRows - front - bend) / .24
     if (across <= -.34 || across >= 1) continue
     const settle = smooth(across + .22)
-    const hem = 1 - smooth((dot.y / portraitRows - .81) / .19)
+    const hem = daylightEdgeFade(dot.y)
     const radius = (.20 + .23 * dot.tone) * pitch * Math.sin(Math.PI * (across + .34) / 1.34) * hem
     const drift = (1 - settle) * pitch
     const cx = x + dot.x * pitch + drift * 2.8 * Math.sin(dot.y * .18 + dot.x * .07)
@@ -218,7 +292,7 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
   let daylight = true
   let lightInk: string | CanvasGradient = '#9cbfff'
   let lastStart: string | undefined
-  let sweepAt = performance.now() + 7000
+  let sweepAt = performance.now() + 1850
 
   function schedule() {
     clearTimeout(wake)
@@ -283,9 +357,9 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
       printDaylight(printer, portrait.dots, pitch)
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const gel = ctx.createLinearGradient(plateX, plateY, plateX + plateW, plateY + plateH)
-      gel.addColorStop(0, '#8bd7e4')
-      gel.addColorStop(.46, '#b9f4ec')
-      gel.addColorStop(.72, '#58afce')
+      gel.addColorStop(0, '#537cff')
+      gel.addColorStop(.46, '#45a9ee')
+      gel.addColorStop(.72, '#30c4c1')
       gel.addColorStop(1, lightInk)
       lightInk = gel
     } else {
@@ -296,10 +370,12 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     if (!mono) {
       // The original plate ends in a straight horizontal crop across the apron.
       // Feather the last few rows into the painting, below the collar and bow.
-      const hem = printer.createLinearGradient(0, plateH * (daylight ? .81 : .79), 0, plateH)
+      const hem = printer.createLinearGradient(0, plateH * (daylight ? daylightHemStart : .79), 0, plateH)
       hem.addColorStop(0, '#000')
-      if (daylight) hem.addColorStop(.5, 'rgba(0,0,0,.82)')
-      else hem.addColorStop(.4, 'rgba(0,0,0,.84)')
+      if (daylight) {
+        hem.addColorStop(.48, 'rgba(0,0,0,.82)')
+        hem.addColorStop(.82, 'rgba(0,0,0,.24)')
+      } else hem.addColorStop(.4, 'rgba(0,0,0,.84)')
       hem.addColorStop(1, 'transparent')
       printer.globalCompositeOperation = 'destination-in'
       printer.fillStyle = hem
@@ -319,8 +395,8 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     const moving = !media.matches && !(daylight && reducedTransparency.matches)
       && !root.matches('.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]')
     const flow = root.dataset.fishPace === 'flow'
-    const quiet = flow ? 5900 : 10200
-    const sweepMs = flow ? 1300 : 1740
+    const quiet = flow ? 4500 : 7900
+    const sweepMs = flow ? 1760 : 2300
     if (start !== lastStart) {
       if (start !== undefined) sweepAt = Number(start) + (flow ? 1370 : 1610)
       else if (now - Number(lastStart) < 2900) sweepAt = now + quiet
@@ -357,22 +433,9 @@ export function mountWhale(canvas: HTMLCanvasElement, preview = false) {
     const age = now - sweepAt
     const phase = age < 0 ? age : age % cycle
     if (phase >= 0 && phase < sweepMs) {
-      const front = phase / sweepMs * 1.32 - .16
-      const path = new Path2D()
-      for (const dot of portrait.highlights) {
-        const distance = Math.abs(.75 * dot.x / portraitColumns + .25 * dot.y / portraitRows - front)
-        if (distance >= .14) continue
-        const hem = 1 - smooth((dot.y / portraitRows - .79) / .21)
-        const radius = dotRadius(portraitRadius, dot.tone) * smooth(1 - distance / .14) * hem
-        const x = plateX + dot.x * pitch
-        const y = plateY + lift + dot.y * pitch
-        path.moveTo(x + radius, y)
-        path.arc(x, y, radius, 0, tau)
-      }
-      ctx.globalAlpha = (daylight ? .78 : flow ? .34 : .24) * progress
-      ctx.fillStyle = lightInk
-      ctx.fill(path)
-      ctx.globalAlpha = 1
+      const front = .04 + phase / sweepMs * 1.02
+      paintReflection(ctx, portrait, plateX, plateY + lift, pitch, portraitRadius,
+        front, lightInk, daylight, progress)
     }
     if (progress < 1 || wakeActive || (phase >= 0 && phase < sweepMs)) schedule()
     else wake = window.setTimeout(schedule, phase < 0 ? -phase : cycle - phase)

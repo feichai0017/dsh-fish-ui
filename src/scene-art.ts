@@ -1,12 +1,23 @@
-import atlas from '../assets/scenes/atlas.webp'
-import aurora from '../assets/scenes/aurora.webp'
-import orbit from '../assets/scenes/orbit.webp'
+import atlas from '../assets/scenes/atlas-day.webp'
+import atlasNight from '../assets/scenes/atlas.webp'
+import { atlasCurrent, atlasCurrentCss } from './atlas-current'
+import aurora from '../assets/scenes/aurora-day.webp'
+import auroraNight from '../assets/scenes/aurora.webp'
+import orbit from '../assets/scenes/orbit-day.webp'
+import orbitNight from '../assets/scenes/orbit.webp'
 import dunes from '../assets/scenes/dunes.webp'
-import rain from '../assets/scenes/rain.webp'
+import dunesNight from '../assets/scenes/dunes-night.webp'
+import rain from '../assets/scenes/harbor-day.webp'
+import rainNight from '../assets/scenes/harbor-night.webp'
 import lotus from '../assets/scenes/lotus.webp'
+import lotusNight from '../assets/scenes/lotus-night.webp'
 
 export const paintings = { atlas, aurora, orbit, dunes, rain, lotus }
 type Scene = keyof typeof paintings
+const nightPaintings: Record<Scene, string> = {
+  atlas: atlasNight, aurora: auroraNight, orbit: orbitNight,
+  dunes: dunesNight, rain: rainNight, lotus: lotusNight,
+}
 type PlateProps = { scene: Scene; className?: string; align?: string; live?: boolean }
 type ReactRuntime = typeof import('react')
 
@@ -32,8 +43,7 @@ function sceneEffects(React: ReactRuntime, scene: Scene, gradientId: string) {
     h('ellipse', { cx: x, cy: y, rx, ry, fill: 'url(#' + gradientId + ')' })
   if (scene === 'atlas') {
     return layers(
-      h('path', { className: 'df-canyon-tracer', d: canyon, pathLength: 100, strokeDasharray: '1.1 99',
-        fill: 'none', stroke: '#a9ebff', strokeWidth: .8, strokeLinecap: 'round' }),
+      atlasCurrent(React),
       h('g', null, dashedTrail(React, canyon, '#b8f7ff', 2.4), dashedTrail(React, canyon, '#b6dbff', 7)))
   }
   if (scene === 'aurora') {
@@ -51,36 +61,44 @@ function sceneEffects(React: ReactRuntime, scene: Scene, gradientId: string) {
     const grains = Array.from({ length: 25 }, (_, index) => {
       const x = 280 + ((index * 137) % 208)
       const y = 172 - (x - 280) * .49 - (index * 13 % 19)
-      return h('circle', { key: index, cx: x, cy: y, r: index % 4 ? .48 : .72, fill: '#ffe5ab' })
+      return h('circle', { key: index, cx: x, cy: y, r: index % 4 ? .48 : .72, fill: 'var(--df-dune-glint, #ffe5ab)' })
     })
     return layers(h('g', { className: 'df-sand-grains' }, grains),
-      h('g', null, dashedTrail(React, duneCrest, '#ffe5a6', 2.15), dashedTrail(React, duneCrest, '#fff1cd', .72)))
+      h('g', null, dashedTrail(React, duneCrest, 'var(--df-dune-glint, #ffe5a6)', 2.15), dashedTrail(React, duneCrest, 'var(--df-dune-lip, #fff1cd)', .72)))
   }
   if (scene === 'rain') {
-    // Rain falls mostly in the upper plane; reflected light breaks into short
-    // horizontal facets that line up with the towers in the painting.
-    const rainStrokes = Array.from({ length: 44 }, (_, i) => {
+    const rainStrokes = Array.from({ length: 34 }, (_, i) => {
       const x = (i * 137) % 645, y = (i * 59) % 190 - 20
-      return 'M' + x + ' ' + y + 'l-2 9'
+      return 'M' + x + ' ' + y + 'l-1.3 5.5'
     }).join(' ')
-    const reflections = [[270,'#ff799e'],[334,'#62e4fa'],[383,'#ff8aba'],[406,'#7fdfff'],[450,'#7decff'],[483,'#ff82ae'],[513,'#ffc38c']] as const
+    // Positions on the two registered paintings, directly under the quay lamps.
+    const reflections = [[350,'#fc8393'],[389,'#ffc680'],[419,'#ffe3a4'],[511,'#e6ae8a'],[549,'#ffb584']] as const
     const shimmer = reflections.map(([cx, color], column) => {
       const marks = Array.from({ length: 12 }, (_, row) => {
         const x = cx + ((row * 7 + column * 3) % 17 - 8) * (row / 17)
-        const y = 179 + row * 3.4 + row * row * .1
+        const y = 212 + row * 2.8 + row * row * .11
         const width = 1.6 + row * .66 + (row * 5 % 6)
         return 'M' + (x - width / 2).toFixed(1) + ' ' + y.toFixed(1) + 'h' + width.toFixed(1)
       }).join(' ')
       return h('path', { key: cx, d: marks, stroke: color, strokeWidth: 1.35, strokeLinecap: 'round', fill: 'none' })
     })
-    return layers(h('path', { className: 'df-harbour-rain', d: rainStrokes, fill: 'none', stroke: '#abcddb', strokeWidth: .5 }),
+    const currents = h('g', { className: 'df-harbor-surface', fill: 'none', strokeLinecap: 'round' },
+      h('path', { className: 'df-harbor-crest', pathLength: 100, stroke: '#c7fbff', strokeWidth: .85,
+        d: 'M-7 124C12 147 1 160 29 190S71 225 120 235S200 248 243 263S347 276 389 284' }),
+      h('path', { className: 'df-harbor-crest df-harbor-crest-far', pathLength: 100, stroke: '#8feaff', strokeWidth: .65,
+        d: 'M-9 193C34 212 61 234 109 245S189 259 234 276S297 287 324 291' }),
+      [[161,221,8], [302,239,12], [461,272,16]].map(([cx,cy,rx], i) =>
+        h('ellipse', { key: cx, className: 'df-harbor-drop', cx, cy, rx, ry: rx * .14,
+          stroke: '#c3f5ff', strokeWidth: .6, style: { animationDelay: (-1.9 * i) + 's' } })))
+    return layers(h('g', null,
+      h('path', { className: 'df-harbour-rain', d: rainStrokes, fill: 'none', stroke: '#afcfe4', strokeWidth: .38 }), currents),
       h('g', null, ...shimmer))
   }
   const rings = (color: string, width: number) => h('g', { fill: 'none', stroke: color, strokeWidth: width },
     h('ellipse', { cx: 331, cy: 201, rx: 53, ry: 6.2 }),
     h('ellipse', { cx: 331, cy: 201, rx: 43, ry: 4.6, opacity: .62 }))
-  return layers(h('g', { className: 'df-jade-ripples' }, rings('#e8ffdf', .62)),
-    h('g', null, rings('#f2ffe1', 1.8), line('M289 198q32-7 63-1', '#284f47', .75, .8)))
+  return layers(h('g', { className: 'df-jade-ripples' }, rings('var(--df-lotus-pearl, #e8ffdf)', .62)),
+    h('g', null, rings('var(--df-lotus-pearl, #f2ffe1)', 1.8), line('M289 198q32-7 63-1', '#284f47', .75, .8)))
 }
 
 const glint: Record<Scene, string> = {
@@ -93,7 +111,9 @@ const outgoingPaintings = new WeakMap<HTMLImageElement, HTMLImageElement>()
 
 export function setWindowPainting(image: HTMLImageElement, scene?: Scene) {
   const root = document.documentElement
-  if (!scene || image.dataset.dfPainting !== scene) {
+  const nightPlate = document.body.hasAttribute('data-ds-dark-theme')
+  const changed = image.dataset.dfPainting !== scene || image.hasAttribute('data-df-night-plate') !== nightPlate
+  if (!scene || changed) {
     const outgoing = outgoingPaintings.get(image)
     outgoing?.getAnimations().forEach(animation => animation.cancel())
     outgoing?.remove()
@@ -104,7 +124,7 @@ export function setWindowPainting(image: HTMLImageElement, scene?: Scene) {
     root.removeAttribute('data-df-window-scene')
     return
   }
-  if (image.dataset.dfPainting !== scene) {
+  if (changed) {
     const fade = image.isConnected && image.complete && image.naturalWidth > 0 && !document.hidden
       && root.dataset.fishPace !== 'still' && !root.classList.contains('df-off-fishmotion')
       && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -114,7 +134,8 @@ export function setWindowPainting(image: HTMLImageElement, scene?: Scene) {
       image.after(outgoing)
       outgoingPaintings.set(image, outgoing)
     }
-    image.src = paintings[scene]
+    image.src = nightPlate ? nightPaintings[scene] : paintings[scene]
+    image.toggleAttribute('data-df-night-plate', nightPlate)
     image.style.objectPosition = focusX[scene] / 6 + '% 50%'
     image.dataset.dfPainting = scene
     if (outgoing) {
@@ -165,11 +186,13 @@ export function dfCreateScenePlate(React: ReactRuntime) {
       observer.observe(document.documentElement)
       return () => observer.disconnect()
     }, [scene, live])
-    const artwork = h('g', { className: 'df-scene-print' },
-      h('image', { key: scene, href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }))
+    const artwork = !live && h('g', { className: 'df-scene-print' },
+      h('image', { key: scene, className: 'df-plate-day',
+        href: paintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }),
+      h('image', { className: 'df-plate-night', href: nightPaintings[scene], width: 600, height: 300, preserveAspectRatio: 'none' }))
     return h('svg', { className, ref, 'data-df-painting': live ? undefined : scene, 'data-df-pane-effects': live ? scene : undefined,
       viewBox: '0 0 600 300', preserveAspectRatio: live ? 'none' : align, 'aria-hidden': true, focusable: false },
-      !live && artwork,
+      artwork,
       live && h('svg', { width: 600, height: 300, viewBox: '0 0 600 300' },
         h('defs', null, h('radialGradient', { id }, h('stop', { offset: 0, stopColor: glint[scene], stopOpacity: .8 }),
           h('stop', { offset: .35, stopColor: glint[scene], stopOpacity: .35 }), h('stop', { offset: 1, stopColor: glint[scene], stopOpacity: 0 }))),
@@ -222,21 +245,69 @@ html[data-df-window-scene] body {
   --df-reading-paper: #eff3f3;
   --df-reading-strength: 97%;
   --df-reading-edge: 80%;
-  --df-paint-grade: saturate(.69);
+  --df-paint-grade: saturate(.89);
   --df-day-haze: color-mix(in srgb, var(--df-scene-glow, #9cbfff) 12%, #d6e6e5);
-  --df-window-light: linear-gradient(168deg, rgb(250 248 239 / .97) 7%,
-    color-mix(in srgb, var(--df-day-haze) 88%, transparent) 39%,
-    color-mix(in srgb, var(--df-day-haze) 69%, transparent) 58%,
-    rgb(156 192 201 / .28) 82%, rgb(130 169 186 / .07));
+  --df-window-light: linear-gradient(168deg, rgb(250 248 239 / .40) 7%,
+    color-mix(in srgb, var(--df-day-haze) 24%, transparent) 52%, transparent 94%);
 }
 html[data-df-window-scene] body[data-ds-dark-theme] {
+  --df-dune-glint: #a9c8f1;
+  --df-dune-lip: #e1eefa;
+  --df-lotus-pearl: #c9e6f0;
   --df-reading-paper: #13202c;
   --df-reading-strength: 96%;
   --df-reading-edge: 58%;
-  --df-paint-grade: saturate(.7);
-  --df-window-light: linear-gradient(160deg, rgb(15 28 39 / .89) 4%,
-    rgb(16 31 44 / .78) 44%, rgb(14 27 38 / .49) 70%, rgb(12 25 37 / .31) 100%);
+  --df-paint-grade: saturate(.88);
+  --df-window-light: linear-gradient(160deg, rgb(15 28 39 / .43) 4%,
+    rgb(16 31 44 / .24) 54%, rgb(12 25 37 / .12));
 }
+/* The painted harbor has its own daylight and night lighting. Keep its local
+   highlights and reserve the opaque paper layer for reading conversations. */
+html[data-df-window-scene="rain"] body:not([data-ds-dark-theme]) {
+  --df-paint-grade: saturate(.95);
+  --df-window-light: linear-gradient(176deg, rgb(235 244 255 / .32), rgb(230 243 255 / .16) 44%,
+    rgb(218 237 249 / .35) 70%, rgb(139 187 224 / .07));
+}
+html[data-df-window-scene="rain"] body[data-ds-dark-theme] {
+  --df-paint-grade: saturate(.97);
+  --df-window-light: linear-gradient(165deg, rgb(7 17 42 / .24), rgb(9 27 48 / .08) 60%, rgb(8 18 36 / .19));
+}
+html[data-df-window-scene="atlas"] body:not([data-ds-dark-theme]) {
+  --df-reading-paper: #e4ecef;
+  --df-reading-strength: 95%;
+  --df-paint-grade: saturate(.86);
+  --df-window-light: linear-gradient(148deg, rgb(234 246 252 / .65) 8%,
+    rgb(234 245 250 / .48) 40%, rgb(224 246 245 / .21) 72%, transparent);
+}
+html[data-df-window-scene="atlas"] body[data-ds-dark-theme] {
+  --df-reading-paper: #182b3d;
+  --df-reading-strength: 90%;
+  --df-paint-grade: saturate(.92);
+  --df-window-light: linear-gradient(155deg, rgb(10 22 47 / .62), rgb(10 29 48 / .41) 56%, rgb(8 30 45 / .22));
+}
+/* The canyon can move directly behind the cyan hair when a sidebar closes.
+   Follow the measured portrait bounds so the ink keeps its own light. */
+html[data-df-window-scene="atlas"] body:not([data-ds-dark-theme]) .dwe-water {
+  background:
+    radial-gradient(ellipse calc(var(--df-portrait-w) * .72) calc(var(--df-portrait-h) * .76)
+      at calc(var(--df-portrait-x) + var(--df-portrait-w) * .07) var(--df-portrait-y),
+      rgb(246 252 254 / .87) 5%, rgb(239 249 252 / .67) 49%, rgb(237 248 253 / .22) 76%, transparent),
+    linear-gradient(160deg, var(--df-water-light), transparent 68%);
+}
+.df-plate-night, body[data-ds-dark-theme] .df-plate-day { display: none; }
+body[data-ds-dark-theme] .df-plate-night { display: inline; }
+body:not([data-ds-dark-theme]) .df-orbital-stars { display: none; }
+/* The subjects in these paired paintings can pass under the portrait as a
+   dock resizes. Keep the local ink legible without dimming the whole scene. */
+html:is([data-df-window-scene="orbit"], [data-df-window-scene="aurora"],
+    [data-df-window-scene="lotus"], [data-df-window-scene="dunes"]) .dwe-water {
+  --df-portrait-matte: 240 244 241;
+  background: radial-gradient(ellipse calc(var(--df-portrait-w) * .72) calc(var(--df-portrait-h) * .78)
+    at var(--df-portrait-x) var(--df-portrait-y), rgb(var(--df-portrait-matte) / .85),
+    rgb(var(--df-portrait-matte) / .62) 45%, transparent 97%),
+    linear-gradient(160deg, var(--df-water-light), transparent 68%);
+}
+html[data-df-window-scene] body[data-ds-dark-theme] .dwe-water { --df-portrait-matte: 11 23 40; }
 /* Keep the light common to the outgoing and incoming paintings during a fade.
    It sits below the chrome, so the four glass edges sample the same landscape. */
 html[data-df-window-scene] body::before {
@@ -276,6 +347,18 @@ html[data-df-window-scene] [data-conversation-content]:is([data-content-phase="a
   background: linear-gradient(90deg, var(--df-margin), var(--df-column) var(--df-reading-gutter),
     var(--df-column) calc(100% - var(--df-reading-gutter)), var(--df-margin));
 }
+/* Match the dock tint at the seam. Keep the text on its own reading surface
+   even when the user increases glass transparency or narrows a split. */
+html[data-df-window-scene="atlas"] [data-conversation-content]:is([data-content-phase="active"], [data-content-phase="settling"]) {
+  --df-margin: var(--df-shell-chrome-fill, var(--df-reading-paper));
+  --df-reading-gutter: clamp(22px, calc(50% - 22rem), 18%);
+}
+html.df-off-glass[data-df-window-scene="atlas"] [data-conversation-content] {
+  --df-reading-strength: 100%;
+}
+@media (prefers-reduced-transparency: reduce) {
+  html[data-df-window-scene="atlas"] [data-conversation-content] { --df-reading-strength: 100%; }
+}
 /* Harness marks finalized Markdown for text selection. Its live response uses
    the same Markdown component before that attribute is available. */
 @media (prefers-contrast: no-preference) and (forced-colors: none) {
@@ -312,6 +395,27 @@ html:is(.df-off-fishmotion, [data-fish-pace="still"]) .df-window-transition { di
 .df-scene-arrival[data-df-arrival="rain"] { transform-origin: 70% 59.7%; }
 .df-scene-arrival[data-df-arrival="atlas"] [data-df-sweep]:last-child { opacity: .13; }
 .df-scene-weather { opacity: 0; }
+.df-harbor-surface { display: none; }
+@media (prefers-reduced-motion: no-preference) and (prefers-contrast: no-preference) and (forced-colors: none) {
+  :root:not(.df-off-fishmotion,.df-off-wave,[data-fish-pace="still"],[data-fish-paused]) .fish-backdrop[data-home="true"] .df-harbor-surface { display: inline; }
+  .df-harbor-crest {
+    stroke-dasharray: 7 4 1 108; animation: df-harbor-crest calc(var(--df-weather-time) * .42) linear infinite;
+  }
+  .df-harbor-crest-far { animation-delay: -3.9s; }
+  .df-harbor-drop {
+    transform-box: fill-box; transform-origin: center; animation: df-harbor-ring calc(var(--df-weather-time) * .19) ease-out infinite;
+  }
+  @keyframes df-harbor-crest {
+    from { stroke-dashoffset: 13; opacity: 0; }
+    14%, 66% { opacity: .88; }
+    to { stroke-dashoffset: -107; opacity: 0; }
+  }
+  @keyframes df-harbor-ring {
+    0%, 40% { opacity: 0; transform: scale(.12); }
+    48% { opacity: .74; }
+    95%, 100% { opacity: 0; transform: scale(1.2); }
+  }
+}
 html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-time: 1.5s; }
 @media (prefers-reduced-motion: no-preference) {
   html:not(.df-off-fishmotion,[data-fish-pace="still"],[data-fish-paused]) .fish-cover .df-scene-print > image {
@@ -320,7 +424,6 @@ html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-t
     animation: df-scene-develop 380ms cubic-bezier(.22,.72,.2,1);
   }
   html:not([data-fish-pace="still"]) .df-scene-weather { opacity: .75; }
-  .df-canyon-tracer { animation: df-canyon-current var(--df-weather-time) linear infinite; }
   .df-polar-silk { animation: df-polar-silk var(--df-weather-time) ease-in-out infinite alternate; }
   .df-orbital-stars { animation: df-starlight calc(var(--df-weather-time) * .4) ease-in-out infinite alternate; }
   .df-sand-grains { animation: df-sand-whisper calc(var(--df-weather-time) * .4) linear infinite; }
@@ -334,10 +437,10 @@ html[data-fish-pace="flow"] .fish-backdrop { --df-weather-time: 12s; --df-rain-t
 }
 html[data-fish-pace="still"] .df-scene-arrival, html[data-fish-paused] .df-scene-arrival { display: none; }
 @media (prefers-reduced-motion: reduce) { .df-scene-arrival { display: none; } }
-@keyframes df-canyon-current { from {stroke-dashoffset:1;} to {stroke-dashoffset:-99;} }
 @keyframes df-polar-silk { from {opacity:.23;transform:translate(-2px,1px);} to {opacity:.88;transform:translate(3px,-2px);} }
 @keyframes df-starlight { from {opacity:.19;} to {opacity:.83;} }
 @keyframes df-sand-whisper { 0% {opacity:0;transform:translate(-6px,3px);} 28%,65% {opacity:.75;} 100% {opacity:0;transform:translate(12px,-4px);} }
 @keyframes df-harbour-rain { 0% {opacity:0;transform:translate(2px,-8px);} 14%,79% {opacity:.6;} 100% {opacity:0;transform:translate(-2px,10px);} }
 @keyframes df-jade-ripple { 0% {opacity:0;transform:scale(.58);} 25% {opacity:.8;} 100% {opacity:0;transform:scale(1.38);} }
+${atlasCurrentCss}
 `

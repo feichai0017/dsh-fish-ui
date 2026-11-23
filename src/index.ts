@@ -1,5 +1,6 @@
 import Schema from '@deepseek-ai/schemastery'
 import { GLASS_RANGES } from './glass-settings'
+import { sceneIds } from './workspace-appearance'
 
 const flags = [
   'hero', 'field', 'wave', 'ripple', 'thinkingSphere', 'thinkingLabel',
@@ -13,7 +14,11 @@ export const Config = Schema.object({
   ...Object.fromEntries(Object.entries(GLASS_RANGES).map(([key, range]) => [
     key, Schema.number().min(range.min).max(range.max).step(range.step).default(range.default).volatile(),
   ])),
-  scene: Schema.union(['atlas', 'aurora', 'orbit', 'dunes', 'rain', 'lotus']).default('atlas').volatile(),
+  scene: Schema.union([...sceneIds]).default('atlas').volatile(),
+  workspaceLooks: Schema.dict(Schema.object({
+    scene: Schema.union([...sceneIds]),
+    accentColor: Schema.string().pattern(/^#[0-9a-f]{6}$/i),
+  })).default({}).volatile().hidden(),
   sceneMotion: Schema.union(['still', 'calm', 'flow']).default('calm').volatile(),
   iconStyle: Schema.union(['line', 'duotone']).default('duotone').volatile(),
   accentColor: Schema.string().pattern(/^#[0-9a-f]{6}$/i).default('#4D6BFE').volatile(),
